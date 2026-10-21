@@ -218,14 +218,15 @@ def insert_opportunity(conn, item, pinned=0):
         conn.execute(
             """INSERT INTO opportunities
                (id, title, title_key, category, location, type, deadline, fields,
-                link, source, published, description, search_text, pinned)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                link, source, published, description, search_text, pinned, lang)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (item.get("id") or sources._make_id(item["title"], link),
              item["title"][:180], tkey, item["category"], item.get("location", ""),
              item.get("type", ""), item.get("deadline", ""),
              json.dumps(item.get("fields", []), ensure_ascii=False),
              link, item.get("source", ""), item.get("published", ""),
-             item.get("description", "")[:500], search_text_for(item), pinned),
+             item.get("description", "")[:500], search_text_for(item), pinned,
+             sources.lang_rank(item["title"] + " " + item.get("description", ""))),
         )
     except sqlite3.IntegrityError:
         return False  # ID yoki havola to'qnashuvi: bitta yozuv butun yangilashni buzmasin
@@ -237,6 +238,18 @@ def init_db():
     try:
         conn.executescript(SCHEMA)
         features.migrate(conn)
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(opportunities)")}
+        if "lang" not in cols:
+            conn.execute("ALTER TABLE opportunities ADD COLUMN lang INTEGER NOT NULL DEFAULT 1")
+            for r in conn.execute("SELECT id, title, description FROM opportunities").fetchall():
+                conn.execute("UPDATE opportunities SET lang=? WHERE id=?",
+                             (sources.lang_rank(r["title"] + " " + r["description"]), r["id"]))
+        # imkoniyat belgisi bo'lmagan oddiy yangiliklarni tozalash (saqlanganlar va rasmiylar qoladi)
+        for r in conn.execute("""SELECT id, search_text FROM opportunities WHERE pinned=0
+                                 AND id NOT IN (SELECT opp_id FROM saved)
+                                 AND id NOT IN (SELECT opp_id FROM applications)""").fetchall():
+            if sources.classify(r["search_text"]) is None:
+                conn.execute("DELETE FROM opportunities WHERE id=?", (r["id"],))
         for src in sources.OFFICIAL_SOURCES:
             insert_opportunity(conn, src, pinned=1)
         conn.execute("INSERT OR IGNORE INTO meta(key, value) VALUES ('last_refresh', '0')")
@@ -492,10 +505,9 @@ def pull_query(query):
         "key": "q:" + sources._norm(q),
         "google": [(f"{q} yoshlar {{year}}", "uz"), (f"{q} tanlov", "uz"), (f"{q} kurs", "uz"),
                    (f"{q} vakansiya amaliyot", "uz"), (f"{uz_alt} tanlov festival yoshlar", "uz"),
-                   (f"Uzbekistan {en} competition {{year}}", "en"),
-                   (f"Uzbekistan {en} youth opportunities", "en"),
-                   (f"{en} scholarship internship {{year}}", "en"),
-                   (f"{q} молодежь конкурс Узбекистан", "ru")],
+                   (f"{q} grant stipendiya", "uz"), (f"{q} bepul kurs yoshlar", "uz"),
+                   (f"{q} конкурс молодежь Узбекистан", "ru"),
+                   (f"Uzbekistan {en} competition {{year}}", "en")],
         "terms": query_stems(query),
         "default": ("Tanlovlar", "Imkoniyat"),
     }
@@ -637,7 +649,7 @@ def register_routes(app):
         total = db.execute("SELECT COUNT(*) FROM opportunities" + where, params).fetchone()[0]
         rows = db.execute(
             "SELECT * FROM opportunities" + where +
-            " ORDER BY published DESC, id DESC LIMIT ? OFFSET ?",
+            " ORDER BY lang, published DESC, id DESC LIMIT ? OFFSET ?",
             params + [PER_PAGE, (page - 1) * PER_PAGE]).fetchall()
         saved_ids = user_saved_ids()
         pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)

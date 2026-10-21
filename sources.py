@@ -233,20 +233,21 @@ def parse_feed_date(value):
 
 CATEGORY_RULES = [
     ("Grantlar", "Grant",
-     [r"\bgrants?\b", r"stipend", r"scholarship", r"fellowship", r"funding"]),
+     [r"\bgrants?\b", r"stipend", r"scholarship", r"fellowship", r"funding", r"грант", r"стипенди", r"subsidiya"]),
     ("Ish va internship", "Ish / internship",
      [r"internship", r"\bintern\b", r"vacanc", r"\bjobs?\b", r"\bcareers?\b",
-      r"amaliyot", r"vakansiya", r"stajirovka", r"ish o'rin"]),
+      r"amaliyot", r"vakansiya", r"stajirovka", r"ish o'rin", r"ishga qabul", r"вакансия", r"стажировк", r"ярмарка вакансий", r"ish yarmarka"]),
     ("Kurslar", "Kurs",
-     [r"\bcourses?\b", r"\bkurs", r"training", r"academy", r"bootcamp",
-      r"workshop", r"o'quv"]),
+     [r"\bcourses?\b", r"\bkurs", r"курс", r"training", r"academy", r"akademiya", r"bootcamp",
+      r"workshop", r"o'quv", r"trening", r"master-klass", r"bepul dars"]),
     ("Volunteer", "Volunteer",
      [r"volunteer", r"volontyor", r"ko'ngilli"]),
     ("Tadbirlar", "Tadbir",
      [r"\bevents?\b", r"tadbir", r"\bforum", r"summit", r"conference",
       r"konferensiya"]),
     ("Tanlovlar", "Tanlov",
-     [r"competition", r"contest", r"hackathon", r"challenge", r"tanlov",
+     [r"competition", r"contest", r"hackathon", r"hakaton", r"challenge", r"tanlov", r"танлов", r"конкурс",
+      r"festival", r"olimpiada", r"chempionat", r"ko'rik-tanlov",
       r"konkurs", r"\bawards?\b", r"startup", r"startap"]),
 ]
 
@@ -568,6 +569,20 @@ def _gnews_url(query, lang):
     return "https://news.google.com/rss/search?q=" + quote(query + " when:30d") + tail
 
 
+_UZ_HINTS = (" va ", " uchun ", " bo'yicha ", "o'", "g'", " yoshlar", " tanlov", "e'lon", " qabul", "tashkil",
+             " o‘", "g‘", "ʻ", " bilan ", " ham ", " qilindi", " boshlandi")
+
+
+def lang_rank(text):
+    """0 — o'zbekcha (lotin yoki kirill), 1 — ruscha, 2 — boshqa (inglizcha)."""
+    t = " " + (text or "").lower() + " "
+    if any(h in t for h in _UZ_HINTS) or any(c in t for c in "ўқғҳ"):
+        return 0
+    if any("а" <= c <= "я" for c in t):
+        return 1
+    return 2
+
+
 def topic_search(key, queries, terms, default):
     """
     Bitta mavzu bo'yicha Google News'dan qidiradi va faqat mavzuga mos
@@ -594,7 +609,8 @@ def topic_search(key, queries, terms, default):
                 continue
             answered += 1
             for row in rows[:30]:
-                item = build_item(row, "Google News", strict=False, default=default)
+                # strict=True: matnda tanlov/grant/kurs/vakansiya kabi imkoniyat belgisi bo'lmasa — oddiy yangilik, tashlaymiz
+                item = build_item(row, "Google News", strict=True)
                 if not item:
                     continue
                 text = " " + _norm(item["title"] + " " + item["description"]) + " "
@@ -605,7 +621,9 @@ def topic_search(key, queries, terms, default):
                     continue
                 seen.update((k, item["link"].lower()))
                 out.append(item)
+    # O'zbek tilidagi natijalar birinchi, keyin rus, keyin ingliz
     out.sort(key=lambda x: x.get("published", ""), reverse=True)
+    out.sort(key=lambda x: lang_rank(x["title"] + " " + x["description"]))
     if answered:  # tarmoq xatosini keshlamaymiz
         if len(_TOPIC_CACHE) > 50:
             _TOPIC_CACHE.clear()
