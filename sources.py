@@ -630,9 +630,13 @@ def topic_search(key, queries, terms, default, hh_query=""):
             continue
         seen.update((k, item["link"].lower()))
         out.append(item)
-    # O'zbek tilidagi natijalar birinchi, keyin rus, keyin ingliz
+    # O'zbekistondagi imkoniyatlar birinchi, ichida o'zbekcha, keyin rus, keyin ingliz
     out.sort(key=lambda x: x.get("published", ""), reverse=True)
-    out.sort(key=lambda x: lang_rank(x["title"] + " " + x["description"]))
+    for x in out:
+        x["uz"] = uz_priority(x["title"], x["description"], x["link"])
+        x["lang"] = lang_rank(x["title"] + " " + x["description"])
+    out.sort(key=lambda x: (x["uz"], x["lang"]))
+    localize_items(out[:40])
     if answered:  # tarmoq xatosini keshlamaymiz
         if len(_TOPIC_CACHE) > 50:
             _TOPIC_CACHE.clear()
@@ -823,3 +827,70 @@ def hh_vacancies(text, limit=20):
         }
         out.append(item)
     return out
+
+
+# ---------------------------------------------------------------------------
+# O'zbekchaga tarjima va O'zbekiston ustuvorligi
+# ---------------------------------------------------------------------------
+_TR_CACHE = {}
+UZ_PLACES = ("uzbekistan", "o'zbekiston", "ozbekiston", "узбекистан", "ўзбекистон", "toshkent", "tashkent", "ташкент",
+             "samarqand", "samarkand", "buxoro", "bukhara", "andijon", "farg'ona", "fergana", "namangan", "xorazm",
+             "khorezm", "qashqadaryo", "surxondaryo", "jizzax", "sirdaryo", "navoiy", "navoi", "qoraqalpog", "nukus",
+             "termiz", "urganch", "it park", "yoshlar ishlari agentligi", "uzbek")
+
+
+def uz_priority(title, description, link):
+    """0 — O'zbekistonga tegishli (domen .uz yoki matnda O'zbekiston/viloyatlar), 1 — boshqa."""
+    host = urlparse(link or "").netloc.lower()
+    if host.endswith(".uz"):
+        return 0
+    t = _norm((title or "") + " " + (description or ""))
+    return 0 if any(p in t for p in UZ_PLACES) else 1
+
+
+def translate_uz(texts):
+    """Matnlar ro'yxatini o'zbekchaga (lotin) tarjima qiladi. Xato bo'lsa asl matnni qaytaradi."""
+    texts = [t or "" for t in texts]
+    todo = [t for t in dict.fromkeys(texts) if t.strip() and t not in _TR_CACHE and lang_rank(t) != 0]
+    chunk, size = [], 0
+    def flush(lines):
+        if not lines:
+            return
+        q = "\n".join(x.replace("\n", " ") for x in lines)
+        try:
+            req = Request("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=uz&dt=t&q=" + quote(q),
+                          headers={"User-Agent": "Mozilla/5.0"})
+            with urlopen(req, timeout=12) as r:
+                data = json.loads(r.read().decode("utf-8", "ignore"))
+            out = "".join(seg[0] for seg in data[0] if seg and seg[0]).split("\n")
+            if len(out) == len(lines):
+                for src, dst in zip(lines, out):
+                    _TR_CACHE[src] = dst.strip() or src
+        except Exception:
+            pass
+    for t in todo:
+        if size + len(t) > 3500 or len(chunk) >= 40:
+            flush(chunk)
+            chunk, size = [], 0
+        chunk.append(t)
+        size += len(t) + 1
+    flush(chunk)
+    if len(_TR_CACHE) > 5000:
+        _TR_CACHE.clear()
+    return [_TR_CACHE.get(t, t) for t in texts]
+
+
+def localize_items(items):
+    """Elementlarni o'zbekchaga o'giradi (asl sarlavha orig_title da saqlanadi)."""
+    need = [it for it in items if lang_rank(it["title"] + " " + it.get("description", "")) != 0]
+    if not need:
+        return items
+    titles = translate_uz([it["title"] for it in need])
+    descs = translate_uz([it.get("description", "")[:400] for it in need])
+    for it, t, d in zip(need, titles, descs):
+        if t and t != it["title"]:
+            it["orig_title"] = it["title"]
+            it["title"] = t[:180]
+        if d:
+            it["description"] = d
+    return items

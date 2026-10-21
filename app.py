@@ -203,7 +203,7 @@ def get_db():
 
 def search_text_for(item):
     return sources._norm(" ".join([
-        item.get("title", ""), item.get("description", ""),
+        item.get("title", ""), item.get("orig_title", ""), item.get("description", ""),
         " ".join(item.get("fields", [])), item.get("category", ""),
         item.get("location", ""), item.get("type", ""),
     ]))
@@ -225,15 +225,17 @@ def insert_opportunity(conn, item, pinned=0):
         conn.execute(
             """INSERT INTO opportunities
                (id, title, title_key, category, location, type, deadline, fields,
-                link, source, published, description, search_text, pinned, lang)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                link, source, published, description, search_text, pinned, lang, uz_prio, orig_title)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (item.get("id") or sources._make_id(item["title"], link),
              item["title"][:180], tkey, item["category"], item.get("location", ""),
              item.get("type", ""), item.get("deadline", ""),
              json.dumps(item.get("fields", []), ensure_ascii=False),
              link, item.get("source", ""), item.get("published", ""),
              item.get("description", "")[:500], search_text_for(item), pinned,
-             sources.lang_rank(item["title"] + " " + item.get("description", ""))),
+             item.get("lang", sources.lang_rank(item["title"] + " " + item.get("description", ""))),
+             item.get("uz", sources.uz_priority(item["title"], item.get("description", ""), link)),
+             item.get("orig_title", "")),
         )
     except sqlite3.IntegrityError:
         return False  # ID yoki havola to'qnashuvi: bitta yozuv butun yangilashni buzmasin
@@ -246,6 +248,12 @@ def init_db():
         conn.executescript(SCHEMA)
         features.migrate(conn)
         cols = {r[1] for r in conn.execute("PRAGMA table_info(opportunities)")}
+        if "uz_prio" not in cols:
+            conn.execute("ALTER TABLE opportunities ADD COLUMN uz_prio INTEGER NOT NULL DEFAULT 1")
+            conn.execute("ALTER TABLE opportunities ADD COLUMN orig_title TEXT NOT NULL DEFAULT ''")
+            for r in conn.execute("SELECT id, title, description, link FROM opportunities").fetchall():
+                conn.execute("UPDATE opportunities SET uz_prio=? WHERE id=?",
+                             (sources.uz_priority(r["title"], r["description"], r["link"]), r["id"]))
         if "lang" not in cols:
             conn.execute("ALTER TABLE opportunities ADD COLUMN lang INTEGER NOT NULL DEFAULT 1")
             for r in conn.execute("SELECT id, title, description FROM opportunities").fetchall():
@@ -330,6 +338,13 @@ def refresh_now(force=False):
             ok_total += ok
             total += tot
 
+        # faqat ariza / ro'yxatdan o'tish belgisi borlar, o'zbekchaga tarjima bilan
+        found = [i for i in found if sources.classify(sources._norm(i["title"] + " " + i["description"]))
+                 and sources.has_apply_sign(i["title"] + " " + i["description"])]
+        for i in found:
+            i["uz"] = sources.uz_priority(i["title"], i["description"], i["link"])
+            i["lang"] = sources.lang_rank(i["title"] + " " + i["description"])
+        sources.localize_items(found)
         added = 0
         if ok_total:
             cutoff = (sources.now_utc() - timedelta(days=sources.MAX_AGE_DAYS)).strftime("%Y-%m-%d %H:%M")
@@ -357,7 +372,29 @@ def refresh_now(force=False):
         _refresh_lock.release()
 
 
+def translate_existing():
+    """Bazadagi o'zbekcha bo'lmagan e'lonlarni fonda tarjima qiladi."""
+    conn = db_connect()
+    try:
+        rows = conn.execute("""SELECT * FROM opportunities WHERE lang != 0 AND orig_title = '' AND pinned = 0
+                               ORDER BY published DESC LIMIT 300""").fetchall()
+        for k in range(0, len(rows), 30):
+            part = [dict(r) for r in rows[k:k + 30]]
+            sources.localize_items(part)
+            for it in part:
+                if it.get("orig_title"):
+                    it["fields"] = json.loads(it["fields"] or "[]")
+                    conn.execute("UPDATE opportunities SET title=?, orig_title=?, description=?, search_text=? WHERE id=?",
+                                 (it["title"], it["orig_title"], it["description"][:500], search_text_for(it), it["id"]))
+            conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
+
+
 def scheduler_loop():
+    translate_existing()
     time.sleep(5)
     while True:
         refresh_now()
@@ -622,7 +659,7 @@ def register_routes(app):
         saved_ids = user_saved_ids()
         rows = db.execute(
             "SELECT * FROM opportunities WHERE published != '' "
-            "ORDER BY published DESC, id DESC LIMIT 6").fetchall()
+            "ORDER BY uz_prio, published DESC, id DESC LIMIT 6").fetchall()
         day_ago = sources.fmt_ts(sources.now_utc() - timedelta(hours=24))
         stats = {
             "total": db.execute("SELECT COUNT(*) FROM opportunities").fetchone()[0],
@@ -659,7 +696,7 @@ def register_routes(app):
         total = db.execute("SELECT COUNT(*) FROM opportunities" + where, params).fetchone()[0]
         rows = db.execute(
             "SELECT * FROM opportunities" + where +
-            " ORDER BY lang, published DESC, id DESC LIMIT ? OFFSET ?",
+            " ORDER BY uz_prio, lang, published DESC, id DESC LIMIT ? OFFSET ?",
             params + [PER_PAGE, (page - 1) * PER_PAGE]).fetchall()
         saved_ids = user_saved_ids()
         pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)

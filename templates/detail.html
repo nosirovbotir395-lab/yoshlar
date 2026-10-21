@@ -16,6 +16,7 @@
         <span class="xpill acc-{{ cat_class(item.category) }}">{{ cat_emoji(item.category) }} {{ item.category }} · {{ item.type }}</span>
         {% if item.is_new %}<span class="badge-new">YANGI</span>{% endif %}
         <h1>{{ item.title }}</h1>
+        {% if item.orig_title %}<p class="muted small">Asl nomi: {{ item.orig_title }} <span class="xpill">🌐 avtomatik tarjima</span></p>{% endif %}
         {% if reasons %}<div class="why">{% for kind, text in reasons %}<span class="{{ 'x' if kind == 'x' }}">{{ '✓' if kind == 'ok' else '!' }} {{ text }}</span>{% endfor %}</div>{% endif %}
         {% if not current_user %}<p class="muted small">Moslik foizini ko‘rish va arizani kuzatish uchun <a href="{{ url_for('login', next=request.path) }}">kiring</a>.</p>{% endif %}
       </div>
