@@ -1,0 +1,5 @@
+yoshlar.db*
+.secret_key
+uploads/
+__pycache__/
+venv/

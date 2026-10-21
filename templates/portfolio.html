@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge_grid, av with context %}
+{% block title %}{{ u['name'] or 'Talaba' }} — portfolio{% endblock %}
+{% block hero %}
+<section class="phead pf-head">
+  <div class="wrap pf-in">
+    {{ av(u['avatar'], 'huge') }}
+    <div class="pf-t">
+      <h1>{{ u['name'] or 'Talaba' }}</h1>
+      <p>{{ u['university'] }}{% if u['major'] %} · {{ u['major'] }}{% endif %}{% if u['course'] %} · {{ u['course'] }}{% endif %}{% if u['region'] %} · 📍 {{ u['region'] }}{% endif %}</p>
+      <div class="pf-tags">
+        {% if direction %}<span>{{ direction.icon }} {{ direction.title }}</span>{% endif %}
+        <span>🏅 {{ lvl.level }}-daraja · {{ lvl.name }}</span>
+        {% if u['lang_level'] %}<span>🗣️ {{ u['lang_level'] }}</span>{% endif %}
+        {% if u['telegram'] %}<a href="https://t.me/{{ u['telegram'] }}" target="_blank" rel="noopener">✈️ @{{ u['telegram'] }}</a>{% endif %}
+      </div>
+    </div>
+    {% if own %}<a class="btn btn-white" href="{{ url_for('portfolio_edit') }}">✏️ Tahrirlash</a>{% endif %}
+  </div>
+</section>
+{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+{% if own and not u['portfolio_public'] %}<div class="flash flash-info">Portfolio hozir faqat sizga ko‘rinadi. Hammaga ochish uchun “Tahrirlash” → sozlamalarda belgini qo‘ying.</div>{% endif %}
+<div class="kstats">
+  <div class="box st"><b class="c-blue">{{ stats.submitted }}</b><span>Topshirilgan ariza</span></div>
+  <div class="box st"><b class="c-green">{{ stats.accepted + stats.awards }}</b><span>Yutuq va qabullar</span></div>
+  <div class="box st"><b class="c-orange">{{ stats.hours }}</b><span>Volontyorlik soati</span></div>
+  <div class="box st"><b class="c-purple">{{ stats.projects }}</b><span>O‘z loyihasi</span></div>
+</div>
+<div class="grid-side">
+  <div>
+    {% if u['bio'] %}<div class="box"><h3>👋 O‘zim haqimda</h3><p>{{ u['bio'] }}</p></div>{% endif %}
+    {% for key, icon, label in kinds if grouped.get(key) %}
+      <div class="box">
+        <h3>{{ icon }} {{ label }}{% if key == 'volunteer' %} <span class="h-right">{{ stats.hours }} soat</span>{% endif %}</h3>
+        {% for it in grouped[key] %}
+          <div class="pf-item"><b>{{ it['title'] }}</b>{% if it['year'] %}<small class="muted"> · {{ it['year'] }}</small>{% endif %}{% if it['hours'] %}<small class="muted"> · {{ it['hours'] }} soat</small>{% endif %}
+            {% if it['description'] %}<p>{{ it['description'] }}</p>{% endif %}
+            {% if it['link'] %}<a href="{{ safe_link(it['link']) }}" target="_blank" rel="noopener nofollow">🔗 Havola</a>{% endif %}</div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+    {% if accepted %}
+      <div class="box"><h3>✅ Qabul qilingan dasturlar</h3>
+        {% for a in accepted %}<div class="pf-item"><b>{{ a['title'] }}</b><small class="muted"> · {{ a['category'] }}</small></div>{% endfor %}</div>
+    {% endif %}
+    {% if not grouped and not accepted and not u['bio'] %}<div class="box empty2"><h3>Portfolio to‘ldirilmoqda</h3></div>{% endif %}
+  </div>
+  <aside class="side">
+    <div class="box"><h3>🏅 Nishonlar</h3>{{ badge_grid(badges|selectattr('got')|list or badges[:3]) }}</div>
+    <div class="box"><p class="muted small">Bu portfolio <b>{{ site_name }}</b> platformasida avtomatik yig‘ilgan: arizalar, loyihalar, volontyorlik va hamjamiyatdagi faollik.</p></div>
+  </aside>
+</div>
+{% endblock %}

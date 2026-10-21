@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+<h1>Admin panel</h1>
+<section class="stats">
+  <div class="stat"><b>{{ total }}</b><span>Imkoniyatlar</span></div>
+  <div class="stat"><b class="purple">{{ users_count }}</b><span>Foydalanuvchilar</span></div>
+  <div class="stat"><b class="green">{{ meta.last_added or '0' }}</b><span>Oxirgi yangilanishda qo‘shilgan</span></div>
+  <div class="stat"><b class="orange">{{ meta.last_ok or '—' }}</b><span>Javob bergan manbalar</span></div>
+</section>
+<p class="muted small">Oxirgi yangilanish: {{ meta.last_status_time or 'hali bo‘lmagan' }} UTC · avtomatik: har {{ refresh_minutes }} daqiqada{% if meta.last_error %} · oxirgi xato: {{ meta.last_error }}{% endif %}</p>
+<form method="post" action="{{ url_for('admin_refresh') }}" class="inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button class="btn btn-green" type="submit">↻ Hozir yangilash</button>
+</form>
+
+<h2 class="section">RSS manbalar</h2>
+<div class="formcard wide">
+  {% for f in feeds %}
+    <div class="row">
+      <span>{{ f['name'] }} · <span class="muted">{{ f['url'] }}</span></span>
+      <form method="post" action="{{ url_for('admin_feed_delete', fid=f['id']) }}" class="inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn btn-danger" type="submit">O‘chirish</button>
+      </form>
+    </div>
+  {% else %}<p class="muted">Qo‘shilgan manba yo‘q. Standart: Google News, Bing News, gov.uz qidiruvi.</p>{% endfor %}
+  <form method="post" action="{{ url_for('admin_feed_add') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Nomi <input type="text" name="name" maxlength="80"></label>
+    <label>RSS havola <input type="url" name="url" required maxlength="400" placeholder="https://..."></label>
+    <button class="btn" type="submit">Tekshirish va qo‘shish</button>
+  </form>
+</div>
+
+<h2 class="section">Imkoniyat qo‘shish</h2>
+<div class="formcard wide">
+  <form method="post" action="{{ url_for('admin_opportunity_add') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Nomi <input type="text" name="title" required maxlength="180"></label>
+    <label>Kategoriya
+      <select name="category">{% for c in categories %}<option>{{ c }}</option>{% endfor %}</select>
+    </label>
+    <label>Havola <input type="url" name="link" required maxlength="400" placeholder="https://..."></label>
+    <label>Hudud <input type="text" name="location" maxlength="80"></label>
+    <label>Turi <input type="text" name="type" maxlength="60"></label>
+    <label>Deadline <input type="text" name="deadline" maxlength="40" placeholder="2026-12-31"></label>
+    <label>Soha <input type="text" name="fields" maxlength="200" placeholder="Logistika, IT, Biznes"></label>
+    <label>Tavsif <input type="text" name="description" maxlength="500"></label>
+    <button class="btn" type="submit">Saqlash</button>
+  </form>
+</div>
+{% endblock %}

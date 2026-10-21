@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros.html" import card with context %}
+{% block title %}Menga mos{% endblock %}
+{% block content %}
+{% if not interest %}
+  <h1>Menga mos</h1>
+  <div class="empty">
+    <h3>Hozircha qiziqishingiz ko‘rsatilmagan</h3>
+    <p class="muted">Profilda “Qiziqish” maydoniga masalan, Logistika deb yozing.</p>
+    <a class="btn" href="{{ url_for('profile') }}">Profilni to‘ldirish</a>
+  </div>
+{% else %}
+  <h1>{{ interest }} bo‘yicha sizga mos</h1>
+  <p class="muted">{{ items|length }} ta mos imkoniyat topildi.</p>
+  <div class="list">
+    {% for item in items %}{{ card(item) }}{% else %}
+      <div class="empty"><h3>Hozircha mos imkoniyat yo‘q</h3><p class="muted">Boshqa soha nomini sinab ko‘ring. Yangi natijalar avtomatik qo‘shilib boradi.</p></div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

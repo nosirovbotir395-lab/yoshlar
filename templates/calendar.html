@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, my_tabs with context %}
+{% block title %}Muddatlar taqvimi{% endblock %}
+{% block hero %}{% call page_head('Muddatlar taqvimi', 'Kuzatayotgan imkoniyatlaringiz muddatlari bir joyda — hech narsani o‘tkazib yubormang') %}
+<a class="btn btn-tg" href="{{ url_for('telegram_link') }}">✈️ Telegram eslatmalar</a>{% endcall %}{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+{{ my_tabs(tab) }}
+<div class="grid-side">
+  <div class="box calbox">
+    <div class="calnav">
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('calendar_view', y=prev_m.year, m=prev_m.month) }}" aria-label="Oldingi oy">‹</a>
+      <b>{{ month_name }}</b>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('calendar_view', y=next_m.year, m=next_m.month) }}" aria-label="Keyingi oy">›</a>
+    </div>
+    <div class="cal">
+      {% for dname in ['Du','Se','Ch','Pa','Ju','Sh','Ya'] %}<div class="dh">{{ dname }}</div>{% endfor %}
+      {% for week in weeks %}{% for d in week %}
+        <div class="dc {{ 'off' if d.month != first.month }} {{ 'today' if d == today }}">
+          <span class="d">{{ d.day }}</span>
+          {% for e in events.get(d, []) %}
+            <a class="ev {{ 'e-urgent' if e.urgent else 'e-' ~ cat_class(e.category) }}" href="{{ url_for('opportunity', oid=e.id) }}" title="{{ e.title }}">{{ cat_emoji(e.category) }} {{ e.title[:28] }}</a>
+          {% endfor %}
+        </div>
+      {% endfor %}{% endfor %}
+    </div>
+    <div class="legend"><span><i class="e-grant"></i>Grant</span><span><i class="e-contest"></i>Tanlov</span><span><i class="e-job"></i>Ish</span><span><i class="e-course"></i>Kurs</span><span><i class="e-volunteer"></i>Volontyorlik</span><span><i class="e-urgent"></i>Shoshilinch (≤3 kun)</span></div>
+  </div>
+  <aside class="side">
+    <div class="box">
+      <h3>📌 Bugun · {{ fmt_day(today) }}</h3>
+      {% for d, e in upcoming %}
+        <a class="rem" href="{{ url_for('opportunity', oid=e.id) }}"><i>{{ '🔥' if e.urgent else cat_emoji(e.category) }}</i><div><b>{{ e.title[:48] }}</b><small>{{ fmt_day(d) }} · {{ (d - today).days }} kun qoldi</small></div></a>
+      {% else %}
+        <p class="muted small">Yaqin muddatlar yo‘q.</p>
+      {% endfor %}
+    </div>
+    <div class="box">
+      <h3>🔔 Eslatmalar</h3>
+      <div class="li"><i>✈️</i><span>Telegram</span><b class="{{ 'ok' if current_user['tg_chat_id'] else 'no' }}">{{ 'ulangan' if current_user['tg_chat_id'] else 'ulanmagan' }}</b></div>
+      <div class="li"><i>⏰</i><span>3 kun va 1 kun oldin</span><b class="{{ 'ok' if current_user['reminders_on'] else 'no' }}">{{ '✓' if current_user['reminders_on'] else 'o‘chiq' }}</b></div>
+      <div class="li"><i>📬</i><span>Haftalik dayjest</span><b class="{{ 'ok' if current_user['digest_on'] else 'no' }}">{{ 'Dushanba' if current_user['digest_on'] else 'o‘chiq' }}</b></div>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('telegram_link') }}">Sozlash</a>
+    </div>
+  </aside>
+</div>
+{% endblock %}

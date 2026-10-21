@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, av with context %}
+{% block title %}{{ item.title }}{% endblock %}
+{% block hero %}
+{% call page_head(cat_emoji(item.category) ~ ' ' ~ item.category, item.type ~ ' · ' ~ item.location, '<a href="' ~ url_for('opportunities') ~ '">Imkoniyatlar</a> › E’lon') %}{% endcall %}
+{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+<div class="dgrid">
+  <div class="box dmain">
+    <div class="dhead">
+      {% if match is not none %}
+        <div class="ring r-{{ (match // 5) * 5 }}"><div><b>{{ match }}%</b>sizga mos</div></div>
+      {% endif %}
+      <div class="dhead-t">
+        <span class="xpill acc-{{ cat_class(item.category) }}">{{ cat_emoji(item.category) }} {{ item.category }} · {{ item.type }}</span>
+        {% if item.is_new %}<span class="badge-new">YANGI</span>{% endif %}
+        <h1>{{ item.title }}</h1>
+        {% if reasons %}<div class="why">{% for kind, text in reasons %}<span class="{{ 'x' if kind == 'x' }}">{{ '✓' if kind == 'ok' else '!' }} {{ text }}</span>{% endfor %}</div>{% endif %}
+        {% if not current_user %}<p class="muted small">Moslik foizini ko‘rish va arizani kuzatish uchun <a href="{{ url_for('login', next=request.path) }}">kiring</a>.</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="dsec">
+      <p class="dtext">{{ item.description }}</p>
+      <div class="facts">
+        <div><small>Joylashuv</small>{{ item.location or '—' }}</div>
+        <div><small>Turi</small>{{ item.type or '—' }}</div>
+        <div><small>E’lon</small>{{ ago(item.published) }}</div>
+        <div><small>Manba</small>{{ short_source(item.source) or '—' }}</div>
+        {% if item.fields %}<div><small>Sohalar</small>{{ item.fields|join(', ') }}</div>{% endif %}
+      </div>
+    </div>
+
+    {% if current_user %}
+    <div class="dsec">
+      <h3>Arizangiz holati</h3>
+      <form method="post" action="{{ url_for('app_status', oid=item.id) }}" class="status-row">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        {% for key, icon, label in statuses %}
+          <button class="st-btn {{ 'on' if app and app['status'] == key }}" name="status" value="{{ key }}" type="submit">{{ icon }} {{ label }}</button>
+        {% endfor %}
+        {% if app %}<button class="st-btn st-remove" name="status" value="remove" type="submit" title="Doskadan olib tashlash">✕</button>{% endif %}
+      </form>
+      <form method="post" action="{{ url_for('app_deadline_set', oid=item.id) }}" class="dl-row">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <span>⏳ Muddat:</span>
+        {% if deadline %}<b class="{{ 'urgent' if left is not none and left <= 3 }}">{{ fmt_day(deadline) }}</b>
+          <span class="muted">({% if left > 0 %}{{ left }} kun qoldi{% elif left == 0 %}bugun!{% else %}o‘tib ketgan{% endif %})</span>
+        {% else %}<span class="muted">e’londa aniq sana yo‘q — o‘zingiz kiriting:</span>{% endif %}
+        <input type="date" name="deadline" value="{{ deadline.isoformat() if deadline else '' }}" aria-label="Muddat sanasi">
+        <button class="btn btn-ghost btn-sm" type="submit">Saqlash</button>
+        <a class="muted small" href="{{ url_for('telegram_link') }}">{{ '✈️ Telegram eslatma yoqilgan ✓' if current_user['tg_chat_id'] else '✈️ Telegram eslatmani ulash' }}</a>
+      </form>
+    </div>
+
+    <div class="dsec" id="xat">
+      <h3>✉️ Motivatsion xat qoralamasi</h3>
+      <p class="muted small">Profilingiz asosida tayyorlandi. O‘zingizga moslab tahrirlang, saqlang va nusxa olib arizaga qo‘ying.</p>
+      <form method="post" action="{{ url_for('app_letter', oid=item.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <textarea name="letter" id="letter" rows="11" class="letter" maxlength="6000">{{ letter }}</textarea>
+        <div class="row-btns">
+          <button class="btn" type="submit" name="action" value="save">💾 Saqlash</button>
+          <button class="btn btn-ghost" type="button" data-copy="letter">📋 Nusxa olish</button>
+          <button class="btn btn-ghost" type="submit" name="action" value="reset">🔄 Qayta yaratish</button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="dsec dfoot">
+      <span class="muted">Ariza tashkilotchining rasmiy sahifasida topshiriladi</span>
+      <a class="btn" href="{{ safe_link(item.link) }}" target="_blank" rel="noopener noreferrer nofollow">Rasmiy sahifada topshirish →</a>
+    </div>
+    {% if is_admin %}
+    <form method="post" action="{{ url_for('admin_opportunity_delete', oid=item.id) }}" class="dsec">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="next" value="{{ url_for('opportunities') }}">
+      <button class="btn btn-danger btn-sm" type="submit">Admin: e’lonni o‘chirish</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <aside class="side">
+    {% if current_user %}
+    <div class="box">
+      <h3>🎒 Kerakli hujjatlar <span class="h-right">{{ docs|selectattr('have')|list|length }}/{{ docs|length }}</span></h3>
+      {% for d in docs %}
+        <div class="li"><i>{{ d.icon }}</i><span>{{ d.title }}</span>{% if d.have %}<b class="ok">✓ bor</b>{% else %}<b class="no">yo‘q</b>{% endif %}</div>
+      {% endfor %}
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('documents') }}">+ Hujjat yuklash</a>
+    </div>
+    {% endif %}
+
+    <div class="box">
+      <h3>👥 Jamoa izlayotganlar</h3>
+      {% for t in teams %}
+        <div class="person">{{ av(t['avatar']) }}<div><b>{{ t['name'] or 'Talaba' }}</b><small>{{ (t['major'] or '')[:30] }}{% if t['needs'] %} · kerak: {{ t['needs'][:40] }}{% endif %}</small></div>
+          {% if t['telegram'] %}<a class="btn btn-tg btn-xs" href="https://t.me/{{ t['telegram'] }}" target="_blank" rel="noopener">✈️</a>{% endif %}</div>
+      {% else %}
+        <p class="muted small">Hozircha hech kim jamoa izlamayapti. Birinchi bo‘ling!</p>
+      {% endfor %}
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('teams', new=1, opp=item.id) }}">+ Men ham jamoa izlayapman</a>
+    </div>
+
+    <div class="box">
+      <h3>💬 G‘oliblar tajribasi</h3>
+      {% for s in stories %}
+        <div class="quote"><b>{{ s['name'] or 'Talaba' }} · {{ s['achievement'][:40] }}</b><p>“{{ s['tip'] }}”</p></div>
+      {% else %}
+        <p class="muted small">Bu turdagi g‘oliblar maslahati hali yo‘q.</p>
+      {% endfor %}
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('winners') }}">Barcha g‘oliblar →</a>
+    </div>
+  </aside>
+</div>
+{% endblock %}

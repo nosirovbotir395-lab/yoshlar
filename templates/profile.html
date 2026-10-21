@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Profil{% endblock %}
+{% block content %}
+<h1>Mening profilim</h1>
+<p class="muted">Bu ma’lumotlar moslik foizi, motivatsion xat va portfolio uchun ishlatiladi. Ism, universitet, yo‘nalish va qiziqishni to‘ldirsangiz +20 ball.</p>
+<p><a class="btn btn-ghost btn-sm" href="{{ url_for('portfolio_edit') }}">🗂 Portfolio</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('telegram_link') }}">✈️ Telegram eslatmalar</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('path_test') }}">🧭 Yo‘lingni top testi</a></p>
+<div class="formcard wide">
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Email <input type="email" value="{{ current_user['email'] }}" disabled></label>
+    <label>Ism <input type="text" name="name" value="{{ current_user['name'] }}" maxlength="80"></label>
+    <label>Universitet <input type="text" name="university" value="{{ current_user['university'] }}" maxlength="120"></label>
+    <label>Yo‘nalish <input type="text" name="major" value="{{ current_user['major'] }}" maxlength="120"></label>
+    <label>Kurs <input type="text" name="course" value="{{ current_user['course'] }}" maxlength="40" placeholder="Masalan: 1-kurs"></label>
+    <label>Hudud <input type="text" name="region" value="{{ current_user['region'] }}" maxlength="80" placeholder="Viloyat yoki shahar"></label>
+    <label>Qiziqish <input type="text" name="interest" value="{{ current_user['interest'] }}" maxlength="100" placeholder="Masalan: Logistika, IT, Marketing"></label>
+    <label>Til darajasi <input type="text" name="lang_level" value="{{ current_user['lang_level'] }}" maxlength="40" placeholder="Masalan: IELTS 6.5, B2"></label>
+    <label>Telegram username <input type="text" name="telegram" value="{{ current_user['telegram'] }}" maxlength="33" placeholder="@username — jamoa e’lonlarida “Yozish” uchun"></label>
+    <button class="btn" type="submit">Saqlash</button>
+  </form>
+</div>
+
+<div class="formcard wide danger-zone">
+  <h3>Hisobni o‘chirish</h3>
+  <p class="muted">Hisobingiz, profilingiz va saqlanganlaringiz butunlay o‘chiriladi. Buni qaytarib bo‘lmaydi.</p>
+  <form method="post" action="{{ url_for('delete_account') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Tasdiqlash uchun parolingiz <input type="password" name="password" required maxlength="200" autocomplete="current-password"></label>
+    <button class="btn btn-danger" type="submit">Hisobni o‘chirish</button>
+  </form>
+</div>
+{% endblock %}

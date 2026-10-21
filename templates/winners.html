@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, av, tg_card with context %}
+{% block title %}G‘oliblar va mentorlar{% endblock %}
+{% block hero %}{% call page_head('G‘oliblar va mentorlar', 'Yutgan talabalardan o‘rganing — ular savollaringizga yordam beradi') %}<a class="btn" href="{{ url_for('winners', new=1) }}#yangi">🏆 Men ham yutdim — tajriba ulashish</a>{% endcall %}{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+<div class="filters">
+  <a href="{{ url_for('winners') }}" class="{{ 'on' if not cat }}">Barchasi</a>
+  {% for key, icon, label in cats %}<a href="{{ url_for('winners', c=key) }}" class="{{ 'on' if cat==key }}">{{ icon }} {{ label }}</a>{% endfor %}
+</div>
+{% if show_form %}
+<div class="box formbox" id="yangi">
+  {% if current_user %}
+  <h3>🏆 Tajribangizni ulashing</h3>
+  <form method="post" class="gform">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Turi <select name="category">{% for key, icon, label in cats %}<option value="{{ key }}">{{ icon }} {{ label }}</option>{% endfor %}</select></label>
+    <label>Nimani yutdingiz? <input type="text" name="achievement" maxlength="120" required placeholder="Masalan: 2026 AI hakatoni g‘olibi"></label>
+    <label class="full">Boshqalarga eng muhim maslahatingiz <textarea name="tip" rows="3" maxlength="400" required placeholder="Masalan: Slayd emas, ishlaydigan prototip ko‘rsating."></textarea></label>
+    <div class="full"><button class="btn" type="submit">Ulashish (+40 ball)</button></div>
+  </form>
+  {% else %}<p>Ulashish uchun <a href="{{ url_for('login', next=url_for('winners', new=1)) }}">kiring</a>.</p>{% endif %}
+</div>
+{% endif %}
+<div class="sgrid">
+  {% for s in stories %}{% set lab = story_label[s['category']] %}
+  <div class="box story s-{{ s['category'] }}">
+    <div class="cv">{{ lab[0] }} {{ lab[1] }}</div>
+    <div class="bd2">
+      <div class="who">{{ av(s['avatar'], 'xl') }}</div>
+      <b>{% if s['portfolio_public'] and s['slug'] %}<a href="{{ url_for('portfolio_public', slug=s['slug']) }}">{{ s['name'] or 'Talaba' }}</a>{% else %}{{ s['name'] or 'Talaba' }}{% endif %}</b>
+      <small class="muted">{{ s['university'] or '' }}{% if s['university'] %} · {% endif %}{{ s['achievement'] }}</small>
+      <div class="tip">“{{ s['tip'] }}”</div>
+      <div class="meta2"><span>💬 {{ s['n_ans'] }} savolga javob berdi</span><a class="btn btn-ghost btn-sm" href="{{ url_for('community', c={'stipendiya':'stipendiyalar','hakaton':'hakatonlar','grant':'grantlar','ish':'ish','volontyor':'volontyorlik','loyiha':'loyihalar'}[s['category']]) }}">Savol berish</a></div>
+    </div>
+  </div>
+  {% else %}
+  <div class="box empty2"><h3>Hali tajriba ulashilmagan</h3><p class="muted">Biror tanlov, grant yoki ishga qabul qilingan bo‘lsangiz — birinchi bo‘lib ulashing!</p></div>
+  {% endfor %}
+</div>
+<div class="grid-side gap-top">
+  <div class="box mentor"><i>🤝</i><div><h3>Mentor bilan maslahat</h3><p class="muted">Arizangizni topshirishdan oldin g‘olibga ko‘rsating: hamjamiyatda savol bering yoki Telegram guruhda #mentor teg bilan yozing.</p></div><a class="btn" href="{{ url_for('community') }}">Savol berish</a></div>
+  {{ tg_card('✈️ Mentorlar chati', 'Telegram guruhda #mentor teg bilan savol bering.') }}
+</div>
+{% endblock %}

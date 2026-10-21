@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, my_tabs with context %}
+{% block title %}Portfolio{% endblock %}
+{% block hero %}{% call page_head('Mening portfoliom', 'Loyihalar, volontyorlik, sertifikat va yutuqlaringiz — ish beruvchiga bitta havola') %}
+<a class="btn btn-white" href="{{ url_for('portfolio_public', slug=current_user['slug']) }}" target="_blank">👁 Ko‘rish</a>{% endcall %}{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+{{ my_tabs('portfolio') }}
+<div class="grid-side">
+  <div>
+    <div class="box formbox">
+      <h3>+ Portfolioga qo‘shish</h3>
+      <form method="post" class="gform">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="add">
+        <label>Turi <select name="kind">{% for key, icon, label in kinds %}<option value="{{ key }}">{{ icon }} {{ label }}</option>{% endfor %}</select></label>
+        <label>Nomi <input type="text" name="title" maxlength="120" required placeholder="Masalan: Mahalla uchun Telegram-bot"></label>
+        <label class="full">Qisqacha tavsif <textarea name="description" rows="2" maxlength="500" placeholder="Nima qildingiz, qanday natija bo‘ldi?"></textarea></label>
+        <label>Havola (ixtiyoriy) <input type="text" name="link" maxlength="300" placeholder="github.com/... yoki sertifikat havolasi"></label>
+        <label>Yil / volontyorlik soati <span class="two"><input type="text" name="year" maxlength="9" placeholder="2026"><input type="number" name="hours" min="0" max="2000" placeholder="soat"></span></label>
+        <div class="full"><button class="btn" type="submit">Qo‘shish (+10 ball)</button></div>
+      </form>
+    </div>
+    {% for it in items %}
+      <div class="box pitem">
+        <i>{{ plabel[it['kind']][0] }}</i>
+        <div><b>{{ it['title'] }}</b><small class="muted">{{ plabel[it['kind']][1] }}{% if it['year'] %} · {{ it['year'] }}{% endif %}{% if it['hours'] %} · {{ it['hours'] }} soat{% endif %}</small>
+          {% if it['description'] %}<p>{{ it['description'] }}</p>{% endif %}
+          {% if it['link'] %}<a href="{{ safe_link(it['link']) }}" target="_blank" rel="noopener nofollow">🔗 {{ it['link'][:50] }}</a>{% endif %}</div>
+        <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ it['id'] }}"><button class="linkbtn" type="submit" title="O‘chirish">✕</button></form>
+      </div>
+    {% else %}
+      <div class="box empty2"><h3>Portfolio hali bo‘sh</h3><p class="muted">Birinchi loyihangiz, volontyorlik yoki sertifikatingizni qo‘shing. Qabul qilingan arizalaringiz avtomatik qo‘shiladi.</p></div>
+    {% endfor %}
+  </div>
+  <aside class="side">
+    <div class="box">
+      <h3>⚙️ Sozlamalar</h3>
+      <form method="post" class="vform">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="settings">
+        <label>Rasm-belgi
+          <span class="avpick">{% for a in avatars %}<label><input type="radio" name="avatar" value="{{ a }}" {{ 'checked' if a == current_user['avatar'] }}><i>{{ a }}</i></label>{% endfor %}</span></label>
+        <label>O‘zim haqimda <textarea name="bio" rows="3" maxlength="300" placeholder="Kimman, nimaga qiziqaman, qanday ish izlayapman">{{ current_user['bio'] }}</textarea></label>
+        <label class="check"><input type="checkbox" name="public" {{ 'checked' if current_user['portfolio_public'] }}> Portfolioni havola orqali hammaga ochish</label>
+        <button class="btn" type="submit">Saqlash</button>
+      </form>
+    </div>
+    <div class="box">
+      <h3>🔗 Shaxsiy havolangiz</h3>
+      {% set plink = url_for('portfolio_public', slug=current_user['slug'], _external=True) %}
+      <input type="text" id="plink" value="{{ plink }}" readonly class="copyinput">
+      <button class="btn btn-ghost btn-sm" type="button" data-copy="plink">📋 Nusxa olish</button>
+      <p class="muted small">{% if current_user['portfolio_public'] %}Bu havolani rezyume va arizalarga qo‘shing.{% else %}Hozir faqat sizga ko‘rinadi. Ochish uchun yuqoridagi belgini qo‘ying.{% endif %}</p>
+    </div>
+    <div class="box"><h3>🙂 Profil</h3><p class="muted small">Ism, universitet, yo‘nalish va Telegram</p><a class="btn btn-ghost btn-sm" href="{{ url_for('profile') }}">Profilni tahrirlash</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('telegram_link') }}">✈️ Telegram</a></div>
+  </aside>
+</div>
+{% endblock %}

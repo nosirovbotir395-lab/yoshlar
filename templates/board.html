@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, my_tabs, tg_card with context %}
+{% block title %}Arizalarim{% endblock %}
+{% block hero %}{% call page_head('Mening arizalarim', 'Har bir imkoniyatni bosqichma-bosqich olib boring — muddatni biz eslatamiz') %}<a class="btn" href="{{ url_for('opportunities') }}">+ Imkoniyat topish</a>{% endcall %}{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+{{ my_tabs(tab) }}
+<div class="kstats">
+  <div class="box st"><b class="c-blue">{{ stats.tracked }}</b><span>Kuzatilayotgan imkoniyat</span></div>
+  <div class="box st"><b class="c-green">{{ stats.submitted }}</b><span>Topshirilgan ariza</span></div>
+  <div class="box st"><b class="c-orange">{{ stats.soon }}</b><span>7 kun ichida muddati tugaydi</span></div>
+  <div class="box st"><b class="c-purple">{{ stats.accepted }}</b><span>Qabul qilindi 🎉</span></div>
+</div>
+<div class="grid-side">
+  <div class="kan">
+    {% for key, label in columns %}
+    <div class="kcol">
+      <h4>{{ label }} <em>{{ cols[key]|length }}</em></h4>
+      {% for c in cols[key] %}
+      <a class="kcard acc-{{ cat_class(c.category) }}" href="{{ url_for('opportunity', oid=c.id) }}">
+        <span class="xpill">{% if c.status == 'accepted' %}✅ Qabul{% elif c.status == 'rejected' %}❌ Rad{% else %}{{ cat_emoji(c.category) }} {{ c.category }}{% endif %}</span>
+        <span class="kt">{{ c.title[:80] }}</span>
+        <span class="krow">
+          {% if c.docs is not none %}<span>Hujjatlar {{ c.docs_have }}/{{ c.docs|length }}</span>
+          {% elif c.match is not none and key == 'saved' %}<span class="match">{{ c.match }}% mos</span>
+          {% elif key == 'result' and c.status == 'rejected' %}<span>Keyingisiga tayyor!</span>
+          {% else %}<span></span>{% endif %}
+          {% if c.left is not none and key in ('saved','preparing') %}<span class="dl {{ 'urgent' if c.left <= 3 }}">⏳ {% if c.left < 0 %}o‘tdi{% elif c.left == 0 %}bugun!{% else %}{{ c.left }} kun{% endif %}</span>
+          {% elif key == 'submitted' %}<span class="muted">Javob kutilmoqda</span>{% endif %}
+        </span>
+        {% if c.docs is not none %}<span class="bar"><i class="w-{{ c.docs_pct }} {{ 'b-ok' if c.docs_pct == 100 else 'b-warn' }}"></i></span>{% endif %}
+      </a>
+      {% else %}
+        <p class="kempty">{% if key == 'saved' %}E’londa ⭐ Saqlash ni bosing{% else %}Bo‘sh{% endif %}</p>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  <aside class="side">
+    <div class="box">
+      <h3>⏰ Yaqin muddatlar</h3>
+      {% for c in soon %}
+        <a class="rem" href="{{ url_for('opportunity', oid=c.id) }}"><i>{{ '🔥' if c.left <= 3 else '⏳' }}</i><div><b>{{ c.title[:50] }}</b><small>{% if c.left == 0 %}bugun!{% else %}{{ c.left }} kun qoldi{% endif %} · {{ fmt_day(c.deadline) }}</small></div></a>
+      {% else %}
+        <p class="muted small">Muddati ma’lum arizalar yo‘q. E’lon sahifasida muddatni o‘zingiz kiritishingiz mumkin.</p>
+      {% endfor %}
+    </div>
+    <div class="box tgcard">
+      <h3>✈️ Telegram eslatmalar</h3>
+      <p>Muddatdan 3 kun va 1 kun oldin bot sizga yozadi. Har dushanba — sizga mos 5 ta yangi imkoniyat.</p>
+      <a class="btn btn-white" href="{{ url_for('telegram_link') }}">{{ '✓ Ulangan' if current_user['tg_chat_id'] else 'Telegram’ni ulash' }}</a>
+    </div>
+  </aside>
+</div>
+{% endblock %}

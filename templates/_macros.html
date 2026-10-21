@@ -1,0 +1,115 @@
+{% macro card(item) %}
+<article class="card">
+  <div class="icon cat-{{ cat_class(item.category) }}">{{ cat_icon(item.category) }}</div>
+  <div class="card-body">
+    <div class="card-top">
+      <span class="tag cat-{{ cat_class(item.category) }}">{{ item.category }}</span>
+      {% if item.is_new %}<span class="badge-new">YANGI</span>{% endif %}
+      <span class="muted small">⌛ {{ item.deadline }}</span>
+    </div>
+    <h3><a href="{{ url_for('opportunity', oid=item.id) }}">{{ item.title }}</a></h3>
+    <p class="muted small">{{ item.location }} · {{ item.type }} · E’lon: {{ ago(item.published) }}{% if item.source %} · Manba: {{ item.source }}{% endif %}</p>
+    <p class="desc">{{ item.description[:180] }}{% if item.description|length > 180 %}…{% endif %}</p>
+    <div class="card-actions">
+      <a class="btn" href="{{ url_for('opportunity', oid=item.id) }}">Batafsil →</a>
+      {% if current_user %}
+        <form method="post" action="{{ url_for('toggle_save', oid=item.id) }}" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+          <button class="btn btn-ghost" type="submit">{{ '★ Saqlangan' if item.saved else '☆ Saqlash' }}</button>
+        </form>
+      {% else %}
+        <a class="btn btn-ghost" href="{{ url_for('login', next=request.full_path.rstrip('?')) }}">☆ Saqlash</a>
+      {% endif %}
+    </div>
+  </div>
+</article>
+{% endmacro %}
+
+
+{% macro acc_card(item, open=false) %}
+<details class="acc-item acc-{{ cat_class(item.category) }}"{% if open %} open{% endif %}>
+  <summary class="acc-sum">
+    <span class="acc-ic">{{ cat_emoji(item.category) }}</span>
+    <span class="acc-t">
+      <span class="acc-meta">
+        <span class="acc-tag">{{ item.category }}</span>
+        {% if item.is_new %}<span class="badge-new">YANGI</span>{% endif %}
+        <span>{{ ago(item.published) }}{% if item.source %} · {{ short_source(item.source) }}{% endif %}</span>
+      </span>
+      <span class="acc-title">{{ item.title }}</span>
+    </span>
+    <span class="acc-dl">⏳ {{ item.deadline }}</span>
+    <span class="acc-chev" aria-hidden="true"></span>
+  </summary>
+  <div class="acc-body">
+    <p>{{ item.description }}</p>
+    <div class="facts">
+      <div><small>Joylashuv</small>{{ item.location or '—' }}</div>
+      <div><small>Turi</small>{{ item.type or '—' }}</div>
+      {% if item.fields %}<div><small>Sohalar</small>{{ item.fields|join(', ') }}</div>{% endif %}
+    </div>
+    <div class="card-actions">
+      <a class="btn" href="{{ safe_link(item.link) }}" target="_blank" rel="noopener noreferrer">Rasmiy sahifaga o‘tish →</a>
+      <a class="btn btn-ghost" href="{{ url_for('opportunity', oid=item.id) }}">Batafsil</a>
+      {% if current_user %}
+        <form method="post" action="{{ url_for('toggle_save', oid=item.id) }}" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+          <button class="btn btn-ghost" type="submit">{{ '★ Saqlangan' if item.saved else '☆ Saqlash' }}</button>
+        </form>
+      {% else %}
+        <a class="btn btn-ghost" href="{{ url_for('login', next=request.full_path.rstrip('?')) }}">☆ Saqlash</a>
+      {% endif %}
+    </div>
+  </div>
+</details>
+{% endmacro %}
+
+{# ---------- sahifa sarlavhasi (rasmli fon) ---------- #}
+{% macro page_head(title, sub='', crumbs=None) %}
+<section class="phead">
+  <div class="wrap phead-in">
+    <div class="phead-text">
+      {% if crumbs %}<div class="crumbs">{{ crumbs|safe }}</div>{% endif %}
+      <h1>{{ title }}</h1>
+      {% if sub %}<p>{{ sub }}</p>{% endif %}
+    </div>
+    <div class="phead-actions">{{ caller() if caller }}</div>
+  </div>
+</section>
+{% endmacro %}
+
+{# ---------- Arizalarim ichki menyusi ---------- #}
+{% macro my_tabs(tab) %}
+<nav class="xtabs" aria-label="Arizalarim bo‘limlari">
+  <a href="{{ url_for('board') }}" class="{{ 'on' if tab=='board' }}">📋 Ariza doskasi</a>
+  <a href="{{ url_for('calendar_view') }}" class="{{ 'on' if tab=='calendar' }}">📅 Taqvim</a>
+  <a href="{{ url_for('documents') }}" class="{{ 'on' if tab=='docs' }}">🎒 Hujjatlar sumkasi</a>
+  <a href="{{ url_for('achievements') }}" class="{{ 'on' if tab=='achievements' }}">🏅 Yutuqlarim</a>
+  <a href="{{ url_for('portfolio_edit') }}">🗂 Portfolio</a>
+</nav>
+{% endmacro %}
+
+{# ---------- Telegram guruh kartochkasi ---------- #}
+{% macro tg_card(title='✈️ Hamjamiyat Telegram guruhi', text='Imkoniyatlar haqida fikr almashing, jamoa toping, g‘oliblardan savol so‘rang.') %}
+<div class="box tgcard">
+  <h3>{{ title }}</h3>
+  <p>{{ text }}</p>
+  <div class="tg-tags"><span># grantlar</span><span># hakatonlar</span><span># jamoa-topish</span><span># ish</span></div>
+  {% if tg_group %}<a class="btn btn-white" href="{{ tg_group }}" target="_blank" rel="noopener">Guruhga qo‘shilish →</a>
+  {% else %}<span class="btn btn-white is-disabled">Guruh havolasi tez orada</span>{% endif %}
+</div>
+{% endmacro %}
+
+{# ---------- nishonlar ---------- #}
+{% macro badge_grid(badges) %}
+<div class="badges">
+  {% for b in badges %}
+  <div class="bd {{ '' if b.got else 'lock' }}" title="{{ b.hint }}"><i>{{ b.icon }}</i><b>{{ b.title }}</b><small>{{ 'olindi' if b.got else b.hint }}</small></div>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{# ---------- odam avatari ---------- #}
+{% macro av(emoji, cls='') %}<i class="av {{ cls }}">{{ emoji or '🙂' }}</i>{% endmacro %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "_macros.html" import card with context %}
+{% block title %}Saqlanganlar{% endblock %}
+{% block content %}
+<h1>Saqlanganlar</h1>
+<p class="muted">Keyinroq ko‘rmoqchi bo‘lgan imkoniyatlaringiz. Bu ro‘yxat faqat sizga ko‘rinadi.</p>
+<div class="list">
+  {% for item in items %}{{ card(item) }}{% else %}
+    <div class="empty"><h3>Saqlangan imkoniyatlar yo‘q</h3><p class="muted">Yoqqan imkoniyatda “Saqlash” tugmasini bosing.</p></div>
+  {% endfor %}
+</div>
+{% endblock %}

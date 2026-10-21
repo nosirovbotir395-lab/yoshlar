@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, my_tabs with context %}
+{% block title %}Hujjatlar sumkasi{% endblock %}
+{% block hero %}{% call page_head('Hujjatlar sumkasi', 'Hujjatlarni bir marta yuklang — har bir arizada qayta ishlating') %}{% endcall %}{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+{{ my_tabs(tab) }}
+<div class="grid-side">
+  <div>
+    <div class="docgrid">
+      {% for key, icon, title in kinds %}
+        {% set mine = docs|selectattr('kind', 'equalto', key)|list %}
+        <div class="box dcard {{ 'has' if mine else '' }}">
+          <div class="dc-h"><i>{{ icon }}</i><b>{{ title }}</b>{% if mine %}<span class="ok">✓</span>{% endif %}</div>
+          {% for d in mine %}
+            <div class="dfile">
+              <a href="{{ url_for('document_file', did=d['id']) }}">📎 {{ d['title'][:34] }}</a>
+              <small>{{ (d['size'] / 1024)|round|int }} KB</small>
+              <form method="post" action="{{ url_for('document_delete', did=d['id']) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="linkbtn" type="submit" title="O‘chirish">✕</button>
+              </form>
+            </div>
+          {% else %}
+            <small class="muted">Hali yuklanmagan</small>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  <aside class="side">
+    <div class="box">
+      <h3>⬆️ Hujjat yuklash</h3>
+      <form method="post" enctype="multipart/form-data" class="vform">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Turi
+          <select name="kind" required>{% for key, icon, title in kinds %}<option value="{{ key }}">{{ icon }} {{ title }}</option>{% endfor %}</select>
+        </label>
+        <label>Nomi (ixtiyoriy) <input type="text" name="title" maxlength="80" placeholder="Masalan: CV inglizcha"></label>
+        <label>Fayl <input type="file" name="file" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
+        <small class="muted">PDF, JPG, PNG, DOC, DOCX · 6 MB gacha</small>
+        <button class="btn" type="submit">Yuklash</button>
+      </form>
+    </div>
+    <div class="box">
+      <h3>🔒 Xavfsizlik</h3>
+      <p class="muted small">Hujjatlaringiz faqat sizga ko‘rinadi. Ularni boshqa foydalanuvchilar yoki portfolio ko‘ruvchilar ko‘ra olmaydi.</p>
+    </div>
+  </aside>
+</div>
+{% endblock %}

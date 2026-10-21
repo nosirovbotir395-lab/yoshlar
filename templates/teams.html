@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, tg_card, badge_grid, av with context %}
+{% block title %}Jamoa topish{% endblock %}
+{% block hero %}{% call page_head('Jamoa topish', 'Hakaton, startap va loyihalar uchun sherik toping') %}<a class="btn" href="{{ url_for('teams', new=1) }}#yangi">+ E’lon berish</a>{% endcall %}{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+<div class="filters">
+  <a href="{{ url_for('teams') }}" class="{{ 'on' if not kind }}">Barchasi</a>
+  <a href="{{ url_for('teams', kind='team') }}" class="{{ 'on' if kind=='team' }}">👥 Jamoa a’zo izlayapti</a>
+  <a href="{{ url_for('teams', kind='seek') }}" class="{{ 'on' if kind=='seek' }}">🔎 Jamoaga qo‘shilmoqchi</a>
+</div>
+
+{% if show_form %}
+<div class="box formbox" id="yangi">
+  {% if current_user %}
+  <h3>Yangi e’lon</h3>
+  <form method="post" class="gform">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if prefill_opp %}<input type="hidden" name="opp_id" value="{{ prefill_opp['id'] }}">{% endif %}
+    <label>Kim izlayapti?
+      <select name="kind"><option value="team">Jamoam bor, a’zo izlayapman</option><option value="seek">Jamoaga qo‘shilmoqchiman</option></select></label>
+    <label>Qaysi tanlov / loyiha uchun <input type="text" name="event" maxlength="100" value="{{ prefill_opp['title'][:100] if prefill_opp else '' }}" placeholder="Masalan: AI hakatoni"></label>
+    <label class="full">G‘oya va o‘zingiz haqingizda <textarea name="body" rows="3" maxlength="600" required placeholder="G‘oya: ... Men backend qila olaman ..."></textarea></label>
+    <label>Kimlar kerak (vergul bilan) <input type="text" name="needs" maxlength="150" placeholder="Dizayner, Data analyst"></label>
+    <label>Hozir a’zolar / kerakli soni
+      <span class="two"><input type="number" name="members" value="1" min="1" max="10"><input type="number" name="size" value="4" min="1" max="12"></span></label>
+    <div class="full row-btns"><button class="btn" type="submit">Joylash</button>{% if not current_user['telegram'] %}<span class="muted small">Sizga yozishlari uchun <a href="{{ url_for('profile') }}">profilda Telegram username</a> kiriting.</span>{% endif %}</div>
+  </form>
+  {% else %}
+  <p>E’lon berish uchun <a href="{{ url_for('login', next=url_for('teams', new=1)) }}">tizimga kiring</a>.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="tgrid">
+  {% for p in posts %}
+  <div class="box tc">
+    <div class="tc-h">{{ av(p['avatar'], 'lg') }}<div><b>{{ p['name'] or 'Talaba' }}</b><small>{{ (p['university'] or '')[:20] }}{% if p['major'] %} · {{ p['major'][:24] }}{% endif %}</small></div></div>
+    <p>{% if p['event'] %}<b>{{ p['event'] }}</b> — {% endif %}{{ p['body'] }}</p>
+    <div class="need">
+      {% if p['kind'] == 'seek' %}<span>🔎 Jamoa izlayapti</span>{% endif %}
+      {% for n in (p['needs'] or '').split(',') if n.strip() %}<span>{{ n.strip() }}</span>{% endfor %}
+    </div>
+    <div class="tc-f">
+      <small class="muted">{% if p['kind'] == 'team' %}{{ p['members'] }}/{{ p['size'] }} a’zo · {% endif %}{{ ago(p['created_at']) }}</small>
+      {% if current_user and current_user['id'] == p['user_id'] %}
+        <form method="post" action="{{ url_for('team_close', pid=p['id']) }}" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="btn btn-ghost btn-sm" type="submit">Yopish</button></form>
+      {% elif p['telegram'] %}
+        <a class="btn btn-tg" href="https://t.me/{{ p['telegram'] }}" target="_blank" rel="noopener">✈️ Yozish</a>
+      {% else %}<span class="muted small">Telegram ko‘rsatilmagan</span>{% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="box empty2"><h3>Hali e’lon yo‘q</h3><p class="muted">Birinchi bo‘lib jamoa e’lonini bering — +30 ball.</p><a class="btn" href="{{ url_for('teams', new=1) }}#yangi">+ E’lon berish</a></div>
+  {% endfor %}
+</div>
+
+<div class="grid-side gap-top">
+  {% if current_user %}
+  <div class="box">
+    <div class="lvl-h"><h3>🏅 Yutuqlarim</h3><span class="muted">{{ my_level.level }}-daraja · <b class="c-blue">{{ my_points }}{% if my_level.next_need %} / {{ my_level.next_need }}{% endif %} ball</b></span></div>
+    <div class="lvl"><i class="w-{{ my_level.pct }}"></i></div>
+    <small class="muted">{% if my_level.next_name %}Yana {{ my_level.left }} ball — “{{ my_level.next_name }}” darajasi{% endif %}</small>
+    {{ badge_grid(badges[:6]) }}
+  </div>
+  {% else %}
+  <div class="box"><h3>🏅 Ball va nishonlar</h3><p class="muted">Ro‘yxatdan o‘ting: ariza, jamoa va yordam uchun ball yig‘ing, nishonlar oling va reytingda chiqing.</p><a class="btn" href="{{ url_for('register') }}">Ro‘yxatdan o‘tish</a></div>
+  {% endif %}
+  {{ tg_card() }}
+</div>
+{% endblock %}

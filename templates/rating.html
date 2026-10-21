@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, av with context %}
+{% block title %}Reyting{% endblock %}
+{% block hero %}{% call page_head('Yoshlar reytingi', 'Ariza topshiring, jamoaga qo‘shiling, maslahat bering — ball to‘plang') %}
+<div class="filters on-dark">
+  <a href="{{ url_for('rating', p='week', s=scope) }}" class="{{ 'on' if period=='week' }}">Bu hafta</a>
+  <a href="{{ url_for('rating', p='month', s=scope) }}" class="{{ 'on' if period=='month' }}">Bu oy</a>
+  <a href="{{ url_for('rating', p='all', s=scope) }}" class="{{ 'on' if period=='all' }}">Barcha vaqt</a>
+</div>{% endcall %}{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+<div class="filters">
+  <a href="{{ url_for('rating', p=period, s='all') }}" class="{{ 'on' if scope=='all' }}">🇺🇿 Butun O‘zbekiston</a>
+  {% if current_user and current_user['region'] %}<a href="{{ url_for('rating', p=period, s='region') }}" class="{{ 'on' if scope=='region' }}">📍 {{ current_user['region'] }}</a>{% endif %}
+  {% if current_user and current_user['university'] %}<a href="{{ url_for('rating', p=period, s='uni') }}" class="{{ 'on' if scope=='uni' }}">🎓 Mening universitetim</a>{% endif %}
+</div>
+<div class="grid-side">
+  <div>
+    {% if rows %}
+    <div class="podium">
+      {% for idx in [1, 0, 2] if rows|length > idx %}{% set r = rows[idx] %}
+        <div class="box pd {{ 'p1' if idx == 0 }}">
+          {{ av(r['avatar'], 'xl') }}<span class="md">{{ ['🥇','🥈','🥉'][idx] }}</span>
+          <b>{% if r['portfolio_public'] and r['slug'] %}<a href="{{ url_for('portfolio_public', slug=r['slug']) }}">{{ r['name'] or 'Talaba' }}</a>{% else %}{{ r['name'] or 'Talaba' }}{% endif %}</b>
+          <small>{{ (r['university'] or '—')[:22] }}</small><div class="sc">{{ r['pts'] }}</div>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="box lb">
+      {% for r in rows[3:] %}
+        <div class="lb-row {{ 'me' if current_user and r['id'] == current_user['id'] }}"><span class="n">{{ loop.index + 3 }}</span>{{ av(r['avatar']) }}
+          <div class="nm"><b>{{ r['name'] or 'Talaba' }}</b><small>{{ r['university'] or '' }}</small></div><span class="pt">{{ r['pts'] }}</span></div>
+      {% endfor %}
+      {% if me and me.rank > 3 %}{% elif current_user and not me %}
+        <div class="lb-row me"><span class="n">—</span>{{ av(current_user['avatar']) }}<div class="nm"><b>Siz</b><small>Bu davrda hali ball yo‘q — birinchi arizangizni topshiring!</small></div><span class="pt">0</span></div>
+      {% endif %}
+    </div>
+    {% else %}
+      <div class="box empty2"><h3>Reyting hali bo‘sh</h3><p class="muted">Birinchi ballni siz oling: imkoniyatni saqlang yoki ariza topshiring.</p></div>
+    {% endif %}
+  </div>
+  <aside class="side">
+    <div class="box">
+      <h3>⚡ Ball qanday yig‘iladi</h3>
+      {% for key, label, icon in [('submitted','Ariza topshirish','📨'),('accepted','Qabul qilinish','✅'),('team','Jamoa e’loni','👥'),('answer','Savolga javob','💬'),('helpful','Foydali javob','⭐'),('story','G‘alaba tajribasi','🏆'),('portfolio','Portfolioga qo‘shish','🗂')] %}
+        <div class="li"><i>{{ icon }}</i><span>{{ label }}</span><b class="ok">+{{ points_table[key] }}</b></div>
+      {% endfor %}
+    </div>
+    <div class="box prize"><h3>🎁 Oy sovrini</h3><p>Oy oxirida TOP-3 talabaga hamkorlardan sovg‘alar: bepul kurs, imtihon to‘lovi, merch.</p></div>
+  </aside>
+</div>
+{% endblock %}

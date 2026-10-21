@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head with context %}
+{% block title %}Sizning yo‘lingiz{% endblock %}
+{% block hero %}{% call page_head(d.icon ~ ' ' ~ d.title, 'Sizga eng mos yo‘nalish') %}<a class="btn btn-white" href="{{ url_for('path_test') }}">Qayta topshirish</a>{% endcall %}{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+<div class="grid-side">
+  <div>
+    <div class="box"><p class="lead">{{ d.text }}</p>
+      {% if second %}<p class="muted">Ikkinchi mos yo‘nalish: <b>{{ second.icon }} {{ second.title }}</b> — <a href="{{ url_for('path_result', d=second_key) }}">ko‘rish</a></p>{% endif %}</div>
+    <h3 class="sec-h">🗺 Qadam-baqadam yo‘l</h3>
+    <ol class="steps">
+      {% for icon, title, text, topic in d.steps %}
+        <li class="box step"><span class="sn">{{ loop.index }}</span><i>{{ icon }}</i>
+          <div><b>{{ title }}</b><p class="muted">{{ text }}</p></div>
+          {% if topic %}<a class="btn btn-ghost btn-sm" href="{{ url_for('opportunities', t=topic) }}">{{ topic_map[topic].icon }} Imkoniyatlar →</a>
+          {% elif 'Jamoa' in title %}<a class="btn btn-ghost btn-sm" href="{{ url_for('teams') }}">👥 Jamoa topish →</a>
+          {% else %}<a class="btn btn-ghost btn-sm" href="{{ url_for('portfolio_edit') if current_user else url_for('register') }}">🗂 Portfolioga →</a>{% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  </div>
+  <aside class="side">
+    <div class="box"><h3>✨ Keyingi qadam</h3><p class="muted small">Birinchi qadamdagi imkoniyatlardan bittasini ⭐ saqlang — u ariza doskangizga tushadi va muddatini biz eslatamiz.</p>
+      <a class="btn" href="{{ url_for('opportunities', t=d.topic) }}">Mos imkoniyatlarni ko‘rish</a></div>
+    {% if not current_user %}<div class="box"><h3>💾 Natijani saqlang</h3><p class="muted small">Ro‘yxatdan o‘tsangiz, natija profilingizga yoziladi va moslik foizi aniqroq bo‘ladi.</p><a class="btn btn-ghost" href="{{ url_for('register') }}">Ro‘yxatdan o‘tish</a></div>{% endif %}
+  </aside>
+</div>
+{% endblock %}

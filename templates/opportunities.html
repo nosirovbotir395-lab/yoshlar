@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "_macros.html" import acc_card with context %}
+{% block title %}Imkoniyatlar{% endblock %}
+{% block hero %}
+<section class="page-head">
+  <div class="wrap">
+    <div class="crumbs"><a href="{{ url_for('index') }}">Bosh sahifa</a> › Imkoniyatlar</div>
+    <h1>Imkoniyatlar</h1>
+    <p>Mavzuni tanlang — internetdan eng so‘nggi e’lonlarni topib beramiz</p>
+  </div>
+</section>
+{% endblock %}
+{% block content %}
+<div class="panel">
+  <form class="panel-row" method="get" action="{{ url_for('opportunities') }}">
+    <select name="category" aria-label="Kategoriya">
+      <option value="">Barcha kategoriyalar</option>
+      {% for c in categories %}<option value="{{ c }}" {{ 'selected' if c == category }}>{{ c }}</option>{% endfor %}
+    </select>
+    <input type="search" name="q" value="{{ q }}" placeholder="Qidirish: masalan, frontend, grant, hackathon..." maxlength="100">
+    {% if topic %}<input type="hidden" name="t" value="{{ topic }}">{% endif %}
+    <button class="btn btn-lg" type="submit">Qidirish</button>
+  </form>
+  <nav class="chips" aria-label="Tez saralash">
+    <span class="chips-label">Tez saralash:</span>
+    {% for t in topics %}
+      {% if t.key == topic %}
+        <a class="chip active" href="{{ url_for('opportunities', category=category or None, q=q or None) }}" aria-current="true"><span aria-hidden="true">{{ t.icon }}</span>{{ t.label }} <span aria-hidden="true">✕</span></a>
+      {% else %}
+        <a class="chip" href="{{ url_for('opportunities', category=category or None, q=q or None, t=t.key) }}"><span aria-hidden="true">{{ t.icon }}</span>{{ t.label }}</a>
+      {% endif %}
+    {% endfor %}
+  </nav>
+</div>
+
+<div class="summary">
+  <h2>{% if topic_obj %}“{{ topic_obj.label }}” bo‘yicha {{ total }} ta imkoniyat{% elif q %}“{{ q }}” bo‘yicha {{ total }} ta imkoniyat{% else %}{{ total }} ta imkoniyat{% endif %}</h2>
+  {% if pages > 1 %}<span class="pill">{{ page }} / {{ pages }} sahifa</span>{% endif %}
+</div>
+
+<div class="acc">
+  {% for item in items %}{{ acc_card(item, open=loop.first and page == 1) }}{% else %}
+    <div class="empty"><h3>Mos imkoniyat topilmadi</h3><p class="muted">Boshqa mavzu yoki qidiruv so‘zini sinab ko‘ring. Internet ulanishi bo‘lmasa, yangi natijalar kelmaydi.</p></div>
+  {% endfor %}
+</div>
+
+{% if web_results %}
+<h2 class="section">Internetdan qo‘shimcha natijalar</h2>
+<div class="acc">
+  {% for r in web_results %}
+  <details class="acc-item acc-event">
+    <summary class="acc-sum">
+      <span class="acc-ic">🔎</span>
+      <span class="acc-t"><span class="acc-meta"><span>{{ r.url.split('/')[2] if r.url.count('/') >= 2 else r.url }}</span></span><span class="acc-title">{{ r.title }}</span></span>
+      <span class="acc-chev" aria-hidden="true"></span>
+    </summary>
+    <div class="acc-body">
+      {% if r.snippet %}<p>{{ r.snippet }}</p>{% endif %}
+      <div class="card-actions"><a class="btn" href="{{ r.url }}" target="_blank" rel="noopener noreferrer">Sahifani ochish →</a></div>
+    </div>
+  </details>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if pages > 1 %}
+<nav class="pager">
+  {% if page > 1 %}<a class="btn btn-ghost" href="{{ url_for('opportunities', category=category, q=q, t=topic or None, page=page-1) }}">← Oldingi</a>{% endif %}
+  <span class="muted">{{ page }} / {{ pages }}</span>
+  {% if page < pages %}<a class="btn btn-ghost" href="{{ url_for('opportunities', category=category, q=q, t=topic or None, page=page+1) }}">Keyingi →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

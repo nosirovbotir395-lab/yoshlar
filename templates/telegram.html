@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, tg_card with context %}
+{% block title %}Telegram{% endblock %}
+{% block hero %}{% call page_head('✈️ Telegram eslatmalar', 'Muddat yaqinlashganda va har dushanba sizga mos imkoniyatlar haqida bot yozadi') %}{% endcall %}{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+<div class="grid-side">
+  <div class="box">
+    {% if current_user['tg_chat_id'] %}
+      <h3>✅ Telegram ulangan</h3>
+      <p class="muted">Bot sizga eslatmalar yuboradi.</p>
+      <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="unlink"><button class="btn btn-ghost btn-sm" type="submit">Uzish</button></form>
+    {% elif enabled and bot %}
+      <h3>1 qadam: botni oching</h3>
+      <p class="muted">Tugmani bosing va Telegram’da <b>START</b> ni bosing — hisobingiz avtomatik ulanadi.</p>
+      <a class="btn btn-tg btn-lg" href="https://t.me/{{ bot }}?start={{ code }}" target="_blank" rel="noopener">✈️ @{{ bot }} ni ochish</a>
+      <p class="muted small">Ulangandan keyin bu sahifani yangilang.</p>
+    {% else %}
+      <h3>⏳ Bot hali sozlanmagan</h3>
+      <p class="muted">Sayt egasi Telegram bot tokenini kiritgandan keyin bu yerda “Ulash” tugmasi paydo bo‘ladi.</p>
+    {% endif %}
+    <hr>
+    <form method="post" class="vform">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="settings">
+      <label class="check"><input type="checkbox" name="reminders" {{ 'checked' if current_user['reminders_on'] }}> Muddatdan 3 kun va 1 kun oldin eslatma</label>
+      <label class="check"><input type="checkbox" name="digest" {{ 'checked' if current_user['digest_on'] }}> Har dushanba: menga mos 5 ta yangi imkoniyat</label>
+      <button class="btn" type="submit">Saqlash</button>
+    </form>
+  </div>
+  <aside class="side">{{ tg_card() }}</aside>
+</div>
+{% endblock %}

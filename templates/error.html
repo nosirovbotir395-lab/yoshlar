@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Xatolik {{ code }}{% endblock %}
+{% block content %}
+<div class="empty">
+  <h1>{{ code }}</h1>
+  <p>{% if code == 404 %}Sahifa topilmadi.{% elif code == 403 %}Bu sahifaga ruxsatingiz yo‘q.{% elif code == 429 %}Juda ko‘p urinish.{% else %}So‘rovda xatolik.{% endif %}</p>
+  {% if message and code != 404 %}<p class="muted">{{ message }}</p>{% endif %}
+  <a class="btn" href="{{ url_for('index') }}">Bosh sahifaga qaytish</a>
+</div>
+{% endblock %}

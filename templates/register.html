@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Ro‘yxatdan o‘tish{% endblock %}
+{% block content %}
+<div class="formcard">
+  <h1>Ro‘yxatdan o‘tish</h1>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Ismingiz <input type="text" name="name" value="{{ form.name }}" maxlength="80" autocomplete="name"></label>
+    <label>Email <input type="email" name="email" value="{{ form.email }}" required maxlength="120" autocomplete="email"></label>
+    <label>Parol (kamida 8 belgi) <input type="password" name="password" required minlength="8" maxlength="200" autocomplete="new-password"></label>
+    <label>Parolni takrorlang <input type="password" name="confirm" required minlength="8" maxlength="200" autocomplete="new-password"></label>
+    <label class="check"><input type="checkbox" name="agree" value="1" required> <span><a href="{{ url_for('privacy') }}" target="_blank">Maxfiylik siyosati</a> bilan tanishdim va roziman</span></label>
+    <button class="btn" type="submit">Hisob yaratish</button>
+  </form>
+  <p class="muted">Hisobingiz bormi? <a href="{{ url_for('login') }}">Kirish</a></p>
+</div>
+{% endblock %}

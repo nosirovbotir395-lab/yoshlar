@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, av, tg_card with context %}
+{% block title %}Hamjamiyat{% endblock %}
+{% block hero %}{% call page_head('Hamjamiyat', 'Savol bering, tajriba ulashing, bir-biringizga yordam bering') %}<a class="btn btn-white" href="{{ url_for('winners') }}">🏆 G‘oliblar va mentorlar</a>{% endcall %}{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+<div class="fgrid">
+  <nav class="box chan" aria-label="Kanallar">
+    <a href="{{ url_for('community') }}" class="{{ 'on' if not channel }}"># hammasi <em>{{ counts.values()|sum }}</em></a>
+    {% for key, label in channels %}<a href="{{ url_for('community', c=key) }}" class="{{ 'on' if channel==key }}"># {{ key }} <em>{{ counts.get(key, 0) }}</em></a>{% endfor %}
+  </nav>
+  <div>
+    {% if current_user %}
+    <form class="box ask" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {{ av(current_user['avatar']) }}
+      <div class="ask-f">
+        <input type="text" name="title" maxlength="160" required placeholder="Savolingiz... masalan, “Grant uchun qaysi hujjatlar kerak?”">
+        <div class="ask-row">
+          <select name="channel" aria-label="Kanal">{% for key, label in channels %}<option value="{{ key }}" {{ 'selected' if key==channel }}># {{ key }}</option>{% endfor %}</select>
+          <input type="text" name="body" maxlength="2000" placeholder="Qo‘shimcha tafsilot (ixtiyoriy)">
+          <button class="btn" type="submit">Yuborish</button>
+        </div>
+      </div>
+    </form>
+    {% else %}
+      <div class="box ask"><span>Savol berish uchun <a href="{{ url_for('login', next=url_for('community')) }}">kiring</a>.</span></div>
+    {% endif %}
+    <div class="filters small-f"><a href="{{ url_for('community', c=channel, sort='top') }}" class="{{ 'on' if sort=='top' }}">🔥 Ommabop</a><a href="{{ url_for('community', c=channel, sort='new') }}" class="{{ 'on' if sort=='new' }}">🕒 Yangi</a></div>
+    {% for q in qs %}
+    <div class="box qcard">
+      <form method="post" action="{{ url_for('question_vote', qid=q['id']) }}" class="vote">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+        <button type="submit" class="{{ 'on' if q['id'] in voted }}" aria-label="Ovoz berish">▲</button><b>{{ q['score'] }}</b>
+      </form>
+      <div class="qbody">
+        <a class="qt" href="{{ url_for('question', qid=q['id']) }}">{{ q['title'] }}</a>
+        {% if q['body'] %}<p>{{ q['body'][:180] }}</p>{% endif %}
+        <div class="tags"><span># {{ q['channel'] }}</span></div>
+        <div class="ans">{% if q['n_help'] %}<span class="acc">✓ foydali javob bor</span>{% endif %}<span>💬 {{ q['n_ans'] }} javob</span><span>· {{ q['name'] or 'Talaba' }} · {{ ago(q['created_at']) }}</span></div>
+      </div>
+    </div>
+    {% else %}
+      <div class="box empty2"><h3>Hali savol yo‘q</h3><p class="muted">Birinchi savolni siz bering!</p></div>
+    {% endfor %}
+  </div>
+  <aside class="side">
+    <div class="box">
+      <h3>🌟 Eng foydali yordamchilar</h3>
+      {% for hl in helpers %}<div class="person">{{ av(hl['avatar']) }}<div><b>{{ hl['name'] or 'Talaba' }}</b><small>{{ hl['n'] }} foydali javob</small></div><span>{{ ['🥇','🥈','🥉'][loop.index0] }}</span></div>
+      {% else %}<p class="muted small">Savol egasi javobni “foydali” deb belgilasa, yordamchi shu yerda chiqadi.</p>{% endfor %}
+    </div>
+    {{ tg_card('✈️ Telegram guruh', 'Yangi savollar guruhga ham tushadi — javobni qayerda bo‘lsangiz ham berasiz.') }}
+  </aside>
+</div>
+{% endblock %}

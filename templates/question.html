@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, av with context %}
+{% block title %}{{ q['title'] }}{% endblock %}
+{% block hero %}{% call page_head('Savol-javob', '# ' ~ q['channel'], '<a href="' ~ url_for('community') ~ '">Hamjamiyat</a> › Savol') %}{% endcall %}{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+<div class="grid-side">
+  <div>
+    <div class="box qcard big">
+      <form method="post" action="{{ url_for('question_vote', qid=q['id']) }}" class="vote">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit" class="{{ 'on' if voted }}" aria-label="Ovoz berish">▲</button><b>{{ q['score'] }}</b>
+      </form>
+      <div class="qbody"><h1 class="qh">{{ q['title'] }}</h1>{% if q['body'] %}<p>{{ q['body'] }}</p>{% endif %}
+        <div class="ans"><span>{{ av(q['avatar'], 'sm') }} {{ q['name'] or 'Talaba' }}</span><span>· {{ ago(q['created_at']) }}</span><span class="tags"><span># {{ q['channel'] }}</span></span></div></div>
+    </div>
+    <h3 class="sec-h">💬 {{ answers|length }} ta javob</h3>
+    {% for a in answers %}
+      <div class="box answer {{ 'helpful' if a['helpful'] }}">
+        <div class="person">{{ av(a['avatar']) }}<div><b>{{ a['name'] or 'Talaba' }}</b><small>{{ a['university'] or '' }} · {{ ago(a['created_at']) }}</small></div>
+          {% if a['helpful'] %}<span class="okpill">✓ Foydali javob</span>{% endif %}</div>
+        <p>{{ a['body'] }}</p>
+        {% if current_user and current_user['id'] == q['user_id'] and a['user_id'] != current_user['id'] %}
+          <form method="post" action="{{ url_for('answer_helpful', aid=a['id']) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="btn btn-ghost btn-sm" type="submit">{{ 'Belgini olib tashlash' if a['helpful'] else '⭐ Foydali deb belgilash' }}</button></form>
+        {% endif %}
+      </div>
+    {% else %}<p class="muted">Hali javob yo‘q. Birinchi bo‘lib javob bering — +10 ball.</p>{% endfor %}
+    {% if current_user %}
+    <form method="post" class="box vform">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>Javobingiz <textarea name="body" rows="4" maxlength="3000" required></textarea></label>
+      <button class="btn" type="submit">Javob berish</button>
+    </form>
+    {% else %}<p><a href="{{ url_for('login', next=request.path) }}">Kiring</a> va javob bering.</p>{% endif %}
+  </div>
+  <aside class="side"><div class="box"><h3>💡 Yaxshi javob qanday bo‘ladi?</h3><p class="muted small">O‘z tajribangizdan yozing, aniq qadamlar va havolalar bering. Savol egasi javobingizni “foydali” deb belgilasa, +15 ball olasiz.</p></div></aside>
+</div>
+{% endblock %}

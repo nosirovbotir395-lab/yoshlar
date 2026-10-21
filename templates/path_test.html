@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head with context %}
+{% block title %}Yo‘lingni top{% endblock %}
+{% block hero %}{% call page_head('🧭 Yo‘lingni top', 'Nimani boshlashni bilmayapsizmi? 12 ta oddiy savol — va sizga mos yo‘nalish hamda qadam-baqadam reja') %}{% endcall %}{% endblock %}
+{% block main_class %}lift narrow{% endblock %}
+{% block content %}
+<form method="post" class="test">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  {% for qtext, options in questions %}{% set qi = loop.index0 %}
+  <fieldset class="box tq">
+    <legend><span class="tq-n">{{ loop.index }}/{{ questions|length }}</span> {{ qtext }}</legend>
+    <div class="opts">
+      {% for label, val in options %}
+        <label class="opt"><input type="radio" name="q{{ qi }}" value="{{ val }}"><span>{{ label }}</span></label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  {% endfor %}
+  <div class="test-f"><button class="btn btn-lg" type="submit">Natijani ko‘rish →</button>{% if not current_user %}<span class="muted small">Natijani saqlash va moslik foizida ishlatish uchun <a href="{{ url_for('register') }}">ro‘yxatdan o‘ting</a>.</span>{% endif %}</div>
+</form>
+{% endblock %}

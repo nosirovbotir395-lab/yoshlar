@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Kirish{% endblock %}
+{% block content %}
+<div class="formcard">
+  <h1>Kirish</h1>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="next" value="{{ next }}">
+    <label>Email <input type="email" name="email" required maxlength="120" autocomplete="email"></label>
+    <label>Parol <input type="password" name="password" required maxlength="200" autocomplete="current-password"></label>
+    <button class="btn" type="submit">Kirish</button>
+  </form>
+  <p class="muted">Hisobingiz yo‘qmi? <a href="{{ url_for('register') }}">Ro‘yxatdan o‘ting</a></p>
+</div>
+{% endblock %}

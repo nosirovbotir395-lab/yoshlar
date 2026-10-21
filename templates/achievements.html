@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, my_tabs, badge_grid with context %}
+{% block title %}Yutuqlarim{% endblock %}
+{% block hero %}{% call page_head('Yutuqlarim', 'Har bir qadamingiz ball beradi — darajangizni oshiring, nishonlarni yig‘ing') %}<a class="btn" href="{{ url_for('rating') }}">🏆 Reyting</a>{% endcall %}{% endblock %}
+{% block main_class %}lift{% endblock %}
+{% block content %}
+{{ my_tabs(tab) }}
+<div class="grid-side">
+  <div class="box">
+    <div class="lvl-h"><h3>🏅 {{ my_level.level }}-daraja · {{ my_level.name }}</h3><span class="muted">{{ my_points }}{% if my_level.next_need %} / {{ my_level.next_need }}{% endif %} ball</span></div>
+    <div class="lvl"><i class="w-{{ my_level.pct }}"></i></div>
+    <small class="muted">{% if my_level.next_name %}Yana {{ my_level.left }} ball — “{{ my_level.next_name }}” darajasi{% else %}Eng yuqori daraja! 🎉{% endif %}</small>
+    {{ badge_grid(badges) }}
+  </div>
+  <aside class="side">
+    <div class="box">
+      <h3>⚡ Ball qanday yig‘iladi</h3>
+      {% for key, label, icon in [('submitted','Ariza topshirish','📨'),('accepted','Qabul qilinish','✅'),('team','Jamoa e’loni','👥'),('answer','Savolga javob','💬'),('helpful','Foydali javob','⭐'),('story','G‘alaba tajribasi','🏆'),('portfolio','Portfolioga qo‘shish','🗂'),('profile','Profilni to‘ldirish','🙂'),('telegram','Telegram ulash','✈️'),('test','Yo‘nalish testi','🧭')] %}
+        <div class="li"><i>{{ icon }}</i><span>{{ label }}</span><b class="ok">+{{ points_table[key] }}</b></div>
+      {% endfor %}
+    </div>
+    <div class="box">
+      <h3>🕒 So‘nggi ballar</h3>
+      {% for p in history %}<div class="li"><span>{{ action_label.get(p['action'], p['action']) }} <small class="muted">· {{ ago(p['created_at']) }}</small></span><b class="ok">+{{ p['amount'] }}</b></div>{% else %}<p class="muted small">Hali ball yo‘q.</p>{% endfor %}
+    </div>
+  </aside>
+</div>
+{% endblock %}
