@@ -12,7 +12,7 @@ SYN = {
     "dizay": ["dizayn", "design", "дизайн", "ui/ux", "grafik"],
     "jurna": ["jurnalist", "journalis", "журналист", "media", "ommaviy axborot"],
     "huquq": ["huquq", "law", "legal", "юрист", "право", "advokat"],
-    "iqtis": ["iqtisod", "econom", "экономик", "moliya", "finance"],
+    "iqtis": ["iqtisod", "econom", "эконом", "moliya", "finance"],
     "moliy": ["moliya", "finance", "финанс", "bank", "buxgalter"],
     "buxga": ["buxgalter", "accountant", "accounting", "бухгалтер"],
     "pedag": ["pedagog", "o'qituvchi", "teacher", "учител", "ta'lim", "education"],

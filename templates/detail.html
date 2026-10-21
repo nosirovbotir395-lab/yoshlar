@@ -70,8 +70,8 @@
     {% endif %}
 
     <div class="dsec dfoot">
-      <span class="muted">Ariza tashkilotchining rasmiy sahifasida topshiriladi</span>
-      <a class="btn" href="{{ safe_link(item.link) }}" target="_blank" rel="noopener noreferrer nofollow">Rasmiy sahifada topshirish →</a>
+      <span class="muted">{{ 'Ariza shu havoladagi sahifada to‘g‘ridan-to‘g‘ri beriladi' if is_direct(item.source) else 'E’londa ro‘yxatdan o‘tish tartibi va havolasi ko‘rsatilgan' }}</span>
+      <a class="btn" href="{{ safe_link(item.link) }}" target="_blank" rel="noopener noreferrer nofollow">{{ '📝 Ariza berish / ro‘yxatdan o‘tish →' if is_direct(item.source) else 'E’lonni ochish →' }}</a>
     </div>
     {% if is_admin %}
     <form method="post" action="{{ url_for('admin_opportunity_delete', oid=item.id) }}" class="dsec">

@@ -583,7 +583,7 @@ def lang_rank(text):
     return 2
 
 
-def topic_search(key, queries, terms, default):
+def topic_search(key, queries, terms, default, hh_query=""):
     """
     Bitta mavzu bo'yicha Google News'dan qidiradi va faqat mavzuga mos
     natijalarni qaytaradi. queries: [(so'rov, til)], terms: mavzu so'zlari,
@@ -616,11 +616,20 @@ def topic_search(key, queries, terms, default):
                 text = " " + _norm(item["title"] + " " + item["description"]) + " "
                 if not any(t in text for t in terms):
                     continue  # mavzuga aloqasi yo'q
+                if not has_apply_sign(row["title"] + " " + row.get("description", "")):
+                    continue  # ro'yxatdan o'tish / ariza belgisi yo'q — oddiy yangilik
                 k = _title_key(item["title"])
                 if k in seen or item["link"].lower() in seen:
                     continue
                 seen.update((k, item["link"].lower()))
                 out.append(item)
+    # To'g'ridan-to'g'ri ariza beriladigan manbalar
+    for item in (hh_vacancies(hh_query, 20) if hh_query else []) + feed_opportunities(terms):
+        k = _title_key(item["title"])
+        if k in seen or item["link"].lower() in seen:
+            continue
+        seen.update((k, item["link"].lower()))
+        out.append(item)
     # O'zbek tilidagi natijalar birinchi, keyin rus, keyin ingliz
     out.sort(key=lambda x: x.get("published", ""), reverse=True)
     out.sort(key=lambda x: lang_rank(x["title"] + " " + x["description"]))
@@ -695,3 +704,122 @@ def web_search_opps(query, limit=12):
             out.append(r)
     out.sort(key=lambda r: r["_score"], reverse=True)
     return out[:limit]
+
+
+# ---------------------------------------------------------------------------
+# To'g'ridan-to'g'ri ariza beriladigan manbalar (yangilik emas)
+# ---------------------------------------------------------------------------
+SRC_HH = "hh.uz"
+DIRECT_SOURCES = (SRC_HH, "Opportunity Desk", "Opportunities for Youth", "Scholars4Dev", "Rasmiy manba", "Qo‘lda qo‘shilgan")
+
+# Ariza / ro'yxatdan o'tish belgilari: Google News natijasida bulardan biri bo'lmasa — oddiy yangilik
+APPLY_SIGNS = (
+    "ro'yxatdan o'tish", "ro'yxatdan o't", "ariza qabul", "arizalar qabul", "ariza topshir", "ariza ber",
+    "qatnashish uchun", "ishtirok etish uchun", "ishtirok etishi mumkin", "qatnashishi mumkin", "hujjatlar qabul",
+    "qabul boshlandi", "qabul davom", "muddat", "havola orqali", "anketa", "registratsiya",
+    "регистрац", "заявк", "прием документов", "приём документов", "принять участие", "до ",
+    "apply", "application", "applications open", "registration", "register", "deadline", "call for",
+)
+
+OPP_FEEDS = [
+    ("Opportunity Desk", "https://opportunitydesk.org/feed/"),
+    ("Opportunities for Youth", "https://opportunitiesforyouth.org/feed/"),
+    ("Scholars4Dev", "https://www.scholars4dev.com/feed/"),
+]
+_FEED_CACHE = {"t": 0, "rows": []}
+
+
+def is_direct(source):
+    return any(x in (source or "") for x in DIRECT_SOURCES)
+
+
+def has_apply_sign(text):
+    t = _norm(text)
+    return any(sig in t for sig in APPLY_SIGNS)
+
+
+def _opp_feed_rows():
+    """Imkoniyat saytlarining RSS lentalari (1 soat kesh)."""
+    now = time.time()
+    if _FEED_CACHE["rows"] and now - _FEED_CACHE["t"] < 3600:
+        return _FEED_CACHE["rows"]
+    def one(job):
+        name, url = job
+        try:
+            return [(name, r) for r in parse_feed(_http_get(url))[:40]]
+        except Exception:
+            return []
+    rows = []
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        for part in pool.map(one, OPP_FEEDS):
+            rows += part
+    if rows:
+        _FEED_CACHE.update(t=now, rows=rows)
+    return rows
+
+
+def feed_opportunities(terms):
+    """Imkoniyat saytlaridan mavzuga mos (terms) dasturlar."""
+    out = []
+    for name, row in _opp_feed_rows():
+        item = build_item(row, name, strict=False, default=("Grantlar", "Dastur"))
+        if not item:
+            continue
+        item["source"] = name
+        item["location"] = "Xalqaro / Online"
+        text = " " + _norm(item["title"] + " " + row.get("description", "")) + " "
+        if terms and not any(t in text for t in terms):
+            continue
+        out.append(item)
+    return out
+
+
+def _hh_clean(v):
+    return _clean_text(re.sub(r"</?highlighttext>", "", v or ""))
+
+
+def hh_vacancies(text, limit=20):
+    """hh.uz ochiq API: O'zbekistondagi vakansiya va amaliyotlar (ariza shu sahifada beriladi)."""
+    text = (text or "").strip()
+    if not text:
+        return []
+    url = ("https://api.hh.ru/vacancies?area=97&order_by=publication_time&per_page=%d&text=%s"
+           % (limit, quote(text)))
+    try:
+        req = Request(url, headers={"User-Agent": "YoshlarHub/1.0", "HH-User-Agent": "YoshlarHub/1.0"})
+        with urlopen(req, timeout=REQUEST_TIMEOUT) as r:
+            data = json.loads(r.read(2_000_000).decode("utf-8", "ignore"))
+    except Exception:
+        return []
+    out = []
+    for v in data.get("items", []):
+        link = v.get("alternate_url") or ""
+        title = _clean_text(v.get("name"))
+        if not title or not link.startswith("https://"):
+            continue
+        emp = (v.get("employer") or {}).get("name") or ""
+        sal = v.get("salary") or {}
+        sal_txt = ""
+        if sal.get("from") or sal.get("to"):
+            sal_txt = f"Maosh: {sal.get('from') or ''}–{sal.get('to') or ''} {sal.get('currency') or ''}".replace("–  ", " ").strip()
+        exp = (v.get("experience") or {}).get("id")
+        snip = v.get("snippet") or {}
+        desc = " ".join(x for x in (f"{emp}." if emp else "", _hh_clean(snip.get("responsibility")),
+                                    _hh_clean(snip.get("requirement")), sal_txt) if x)
+        intern = exp == "noExperience" or any(w in title.lower() for w in ("стаж", "intern", "trainee", "amaliyot", "junior", "младш"))
+        pub = None
+        try:
+            pub = datetime.strptime(v.get("published_at", "")[:19], "%Y-%m-%dT%H:%M:%S") - timedelta(hours=3)
+            pub = pub.replace(tzinfo=timezone.utc)
+        except ValueError:
+            pass
+        item = {
+            "id": _make_id(title, link), "title": title[:180], "category": "Ish va internship",
+            "location": ((v.get("area") or {}).get("name") or "O‘zbekiston"),
+            "type": "Amaliyot / tajribasiz" if intern else "Vakansiya",
+            "deadline": "Doimiy qabul", "fields": detect_fields(_norm(title + " " + desc)) + (["Talabalar"] if intern else []),
+            "link": link, "source": SRC_HH, "published": fmt_ts(pub or now_utc()),
+            "description": (desc or "Vakansiya tafsilotlari hh.uz sahifasida.")[:500], "seen": False,
+        }
+        out.append(item)
+    return out

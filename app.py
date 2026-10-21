@@ -41,7 +41,14 @@ CATEGORIES = ["Grantlar", "Ish va internship", "Tanlovlar",
 #   web     — SearXNG (ixtiyoriy) uchun inglizcha so'rov
 def _topic(key, label, icon, terms, google, default, web):
     return {"key": key, "label": label, "icon": icon, "terms": terms,
-            "google": google, "default": default, "web": web}
+            "google": google, "default": default, "web": web, "hh": HH_QUERIES.get(key, "")}
+
+
+# hh.uz vakansiya qidiruvi (faqat ish bilan bog'liq mavzularda)
+HH_QUERIES = {"ish": "стажер OR junior OR без опыта", "internship": "стажер OR стажировка OR intern OR trainee",
+              "it": "программист OR developer OR стажер IT", "marketing": "маркетолог OR SMM",
+              "logistika": "логист OR логистика", "biznes": "менеджер по продажам OR бизнес-аналитик",
+              "talaba": "студент OR стажер OR без опыта"}
 
 
 TOPICS = [
@@ -244,11 +251,12 @@ def init_db():
             for r in conn.execute("SELECT id, title, description FROM opportunities").fetchall():
                 conn.execute("UPDATE opportunities SET lang=? WHERE id=?",
                              (sources.lang_rank(r["title"] + " " + r["description"]), r["id"]))
-        # imkoniyat belgisi bo'lmagan oddiy yangiliklarni tozalash (saqlanganlar va rasmiylar qoladi)
-        for r in conn.execute("""SELECT id, search_text FROM opportunities WHERE pinned=0
+        # imkoniyat yoki ariza belgisi bo'lmagan oddiy yangiliklarni tozalash (saqlanganlar va rasmiylar qoladi)
+        for r in conn.execute("""SELECT id, search_text, source FROM opportunities WHERE pinned=0
                                  AND id NOT IN (SELECT opp_id FROM saved)
                                  AND id NOT IN (SELECT opp_id FROM applications)""").fetchall():
-            if sources.classify(r["search_text"]) is None:
+            if sources.classify(r["search_text"]) is None or (
+                    not sources.is_direct(r["source"]) and not sources.has_apply_sign(r["search_text"])):
                 conn.execute("DELETE FROM opportunities WHERE id=?", (r["id"],))
         for src in sources.OFFICIAL_SOURCES:
             insert_opportunity(conn, src, pinned=1)
@@ -471,7 +479,7 @@ def user_saved_ids():
 
 def pull_topic(t):
     """Mavzu bo'yicha Google News'dan yangi natijalarni olib bazaga qo'shadi (15 daqiqa kesh)."""
-    items = sources.topic_search(t["key"], t["google"], t["terms"], t["default"])
+    items = sources.topic_search(t["key"], t["google"], t["terms"], t["default"], t.get("hh", ""))
     if not items:
         return 0
     db = get_db()
@@ -510,6 +518,7 @@ def pull_query(query):
                    (f"Uzbekistan {en} competition {{year}}", "en")],
         "terms": query_stems(query),
         "default": ("Tanlovlar", "Imkoniyat"),
+        "hh": " OR ".join([q] + [x for x in synonyms.expand(words[0])[1:] if any("а" <= c <= "я" for c in x)][:2]),
     }
     return pull_topic(pseudo)
 
@@ -587,6 +596,7 @@ def register_hooks(app):
             "cat_icon": lambda c: CATEGORY_ICON.get(c, "•"),
             "cat_emoji": lambda c: CATEGORY_EMOJI.get(c, "✨"),
             "short_source": lambda s: (s or "").split(" (")[0],
+            "is_direct": sources.is_direct,
             "ago": sources.ago,
             "safe_link": lambda u: u if (u or "").startswith(("http://", "https://")) else "#",
         }
